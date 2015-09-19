@@ -3,44 +3,98 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+
 path = "/Users/Diana/Desktop/Astro 120/Lab1/data/"
 file_arr = os.listdir(path) #import all the files into an array
 print file_arr
-filename = file_arr[3] #"baes20_150902_1956_43.csv"
+filename = "baes20_150902_1956_43.csv"
 print "chosen file", filename
 num_events = 20000
+
+def format_scinotation(z, decimal):
+    zstr = str(z)
+    e = 0
+    while z>9:
+        e +=1
+        z/=10
+    return str(np.int(z%(10**e)))+'.'+zstr[1:decimal]+'x10^'+str(e)
 
 ##################### First Question ########################
 x = np.loadtxt(path+filename, delimiter=',', dtype = np.int32)
 t = x[:,1]
 
 #### Figure 1: Times Series #####
-def fig1():
+def fig1(t):
     fig=plt.figure()
-    plt.plot(t,'o')
+    plt.plot(t,',')#,'marker',12)
+    #plt.axhline(y=2**31,color='r', linewidth = .5)
+    plt.title("Raw Event Time (Scattered)")
     plt.xlabel('Event Number')
     plt.ylabel('Clock Tick')
+    return fig
+    
+def fig1a(t):
+    fig=plt.figure()
+    plt.plot(t)
+    plt.title("Raw Event Time")
+    plt.xlabel('Event Number')
+    plt.ylabel('Clock Tick')
+    return fig
+    
+def fig1_1a(t):
+    fig=plt.figure()
+    ax = fig.add_subplot(211)
+    ax.plot(t,'k', label = 'Points Joined')
+    ax.set_title("Raw Event Time")
+    #ax.set_xlabel('Event Number')
+    ax.set_ylabel('Clock Tick')
+    ax.legend(loc='upper right', frameon = True, fancybox = True, fontsize = 10)
+
+    
+    ax1 = fig.add_subplot(212)
+    ax1.plot(t,'k,', label = 'Scattered')
+    ax1.set_xlabel('Event Number')
+    ax1.set_ylabel('Clock Tick')
+    ax1.legend(loc='upper right', frameon = True, fancybox = True,fontsize = 10)
     return fig
 
 # Compute the intervals
 dt = t[1:] - t[0:-1]
 
 ###### Figure 2: Interval subsequent events (in clock ticks) as a function of event number ####
-def fig2():
+def fig2(dt):
     fig=plt.figure()
-    plt.plot(dt)
+    plt.plot(dt, 'k')
+    plt.title('Interval between Subsequent Events')
     plt.xlabel('Event Number')
     plt.ylabel('Interval [clock ticks]')
     return fig
    
 ###### Figure 3: Interval subsequent events (in clock ticks) as a function of event number - single dot####
-def fig3():
+def fig3(dt):
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
-    ax1.plot(dt,',')
+    ax1.plot(dt,'k,')
+    ax1.set_title('Interval between Subsequent Event')
     ax1.set_xlabel('Event number')
     ax1.set_ylabel('Interval [clock ticks]')
     return fig    
+
+def fig2_3(dt):
+    fig = plt.figure()
+    ax = fig.add_subplot(211)
+    ax.plot(dt, 'k',linewidth=.5, label = 'Points Joined')
+    ax.set_title('Interval between Subsequent Events')
+    #ax.set_xlabel('Event number', size = 12)
+    ax.set_ylabel('Interval [clock ticks]', size = 12)
+    ax.legend(loc='upper right', fancybox = True)
+    
+    ax1 = fig.add_subplot(212)
+    ax1.plot(dt,'k,', label='Scattered')
+    ax1.set_xlabel('Event number')
+    ax1.set_ylabel('Interval [clock ticks]')
+    ax1.legend(loc='upper right', fancybox = True)
+    return fig 
        
 ##################### Second Question ######################
 # Compute the means in chunks
@@ -71,6 +125,41 @@ def fig4():
 ###### Figure 6: Interval subsequent events (in clock ticks) as a function of event number ####
 def fig6():
     return mean_interval_fig(100)
+
+def mean_interval_fig_lab():
+    x_arr1000, marr1000 = mean_interval(1000)  
+    x_arr100, marr100 = mean_interval(100)
+    x_arr10, marr10 = mean_interval(10)
+    
+    #x_arr = [x_arr1000,x_arr100,x_arr10]
+    #m_arr = [marr1000,marr100,marr10]
+    #means = [np.mean(marr) for marr in m_arr]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(311)
+    ax.plot(x_arr1000, marr1000, 'ko', label = 'Chunks of 1000 events\nmean = ' + format_scinotation(np.mean(marr1000),5))
+    ax.set_title('Mean Interval for Different Sized Chunks')
+    ax.axhline(y = np.mean(marr1000), ls ='--', color = 'r')
+
+    ax1 = fig.add_subplot(312)
+    ax1.plot(x_arr100, marr100, 'ko', label = 'Chunks of 100 events\nmean = ' + format_scinotation(np.mean(marr100),5))
+    ax1.axhline(y = np.mean(marr100), ls ='--', color = 'r')
+    ax1.set_ylabel('Mean Interval [clock ticks]', fontsize = 12)
+   
+    ax2 = fig.add_subplot(313)
+    ax2.plot(x_arr10, marr10, 'ko', label = 'Chunks of 10 events\nmean = ' + format_scinotation(np.mean(marr10),5))
+    ax2.axhline(y = np.mean(marr10), ls ='--', color = 'r')
+    ax2.set_xlabel("Start Index")
+    
+    ax_arr = [ax, ax1,ax2]
+    for ax in ax_arr:
+        ax.legend(loc='upper right', fancybox = True, fontsize = 8)
+        ax.grid(True)
+        ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+        ax.tick_params(axis='y', labelsize=8)
+        ax.tick_params(axis='x', labelsize=8)
+
+    return fig
     
 #################### Figure 5 ########################
 def mean_datastep(datastep, dt):
@@ -96,8 +185,35 @@ def mean_datastep_fig(datastep, dt):
 
 #datastep = 100 
 def fig5():
-    return mean_datastep_fig(100)
+    return mean_datastep_fig(100, dt)
+    
+def mean_datastep_fig_lab(dt):
+    x_arr1000, marr1000 = mean_datastep(1000, dt)  
+    x_arr100, marr100 = mean_datastep(100, dt)
 
+    fig = plt.figure()
+    ax = fig.add_subplot(211)
+    ax.plot(x_arr1000, marr1000, 'ko', label = 'Intervals of 1000 events\nmean = ' + format_scinotation(np.mean(marr1000),5))
+    ax.set_title('Mean Interval for Different Sized Chunks')
+    ax.axhline(y = np.mean(marr1000), ls ='--', color = 'r')
+    ax.set_ylabel('Mean Interval [clock ticks]')
+
+    ax1 = fig.add_subplot(212)
+    ax1.plot(x_arr100, marr100, 'ko', label = 'Intervals of 100 events\nmean = ' + format_scinotation(np.mean(marr100),5))
+    ax1.axhline(y = np.mean(marr100), ls ='--', color = 'r')
+    ax1.set_ylabel('Mean Interval [clock ticks]')
+    ax1.set_xlabel('Index Count')
+
+    ax_arr = [ax, ax1]
+    for ax in ax_arr:
+        ax.legend(loc='lower right', fancybox = True, fontsize = 8)
+        ax.grid(True)
+        ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+        ax.tick_params(axis='y', labelsize=8)
+        ax.tick_params(axis='x', labelsize=8)
+        #ax.xticklabel = np.arange(0,20000,2500)
+
+    return fig
 
 ################### Standard deviation part #############
 marr = mean_interval(1000)[1]
@@ -154,7 +270,7 @@ def fig8(dt):
     ax1.set_xlabel('1/sqrt(N)')
     # r'$\frac{1}{\sqrt{N}}$'
     ax1.set_ylabel('Standard deviation of the mean [ticks]')
-    ax1.set_xlim([np.amin(x_arr8), np.amax(x_arr8)])
+    ax1.set_xlim([np.amin(x_arr), np.amax(x_arr)])
     #fig4.show()
     #fig4.savefig('/Users/Diana/Desktop/Astro 120/Lab1/fig8_20000.png')
 
@@ -222,13 +338,32 @@ def fig11b(N, dt):
     plt.legend(loc='upper right')
     return fig
     
-plt.show(fig10(100, dt))
-plt.show(fig11a(100, dt))
-plt.show(fig11b(100,dt))
+################################################################################
+###############################----Figures-----#################################
+################################################################################
+#plt.show(fig10(100, dt))
+#plt.show(fig11a(100, dt))
+#plt.show(fig11b(100,dt))
+
+#plt.show(fig1(t))
+#plt.show(fig1a(t))
+#plt.show(fig2(dt))
+#plt.show(fig3(dt))
+
+plt.show(fig2_3(dt))
+plt.show(fig1_1a(t))
+plt.show(mean_interval_fig_lab())
+plt.show(mean_datastep_fig_lab(dt))
 
 
 fig_path = '/Users/Diana/Desktop/Astro 120/Lab1/Figures/'
 num_events_str = '_' + str(num_events)
+#fig1_1a(t).savefig(fig_path+'fig1_2graphs'+num_events_str+'.png', dpi = 150)
+#fig2_3(dt).savefig(fig_path+'fig2&fig3'+num_events_str+'.png', dpi = 150)
+mean_interval_fig_lab().savefig(fig_path+'mean_interval'+num_events_str+'.png', dpi = 150)
+mean_datastep_fig_lab(dt).savefig(fig_path+'mean_datastep'+num_events_str+'.png', dpi = 150)
+
+
 fig_arrx = []#[fig1(),fig2()]
 fig_arry = []#['fig1','fig2']
 fig_arr = [fig_arrx, fig_arry]

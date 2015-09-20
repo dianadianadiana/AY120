@@ -10,6 +10,14 @@ print file_arr
 filename = "baes20_150902_1956_43.csv"
 print "chosen file", filename
 num_events = 20000
+data1= np.transpose(np.loadtxt(path+'baes_vary1_150914_1448_43.csv' ,delimiter=',',dtype='int32'))[1]
+data2=np.transpose(np.loadtxt(path+'baes_vary2_150914_1451_43.csv' ,delimiter=',',dtype='int32'))[1]
+data3=np.transpose(np.loadtxt(path+'baes_vary3_150914_1454_43.csv' ,delimiter=',',dtype='int32'))[1]
+data4=np.transpose(np.loadtxt(path+'baes_vary4_150914_1457_43.csv' ,delimiter=',',dtype='int32'))[1]
+data5=np.transpose(np.loadtxt(path+'baes_vary5_150914_1457_43.csv' ,delimiter=',',dtype='int32'))[1]
+data6=np.transpose(np.loadtxt(path+'baes_vary6_150914_1459_43.csv' ,delimiter=',',dtype='int32'))[1]
+datas = [data1,data2,data3,data4,data5,data6]
+
 
 def format_scinotation(z, decimal):
     zstr = str(z)
@@ -18,6 +26,14 @@ def format_scinotation(z, decimal):
         e +=1
         z/=10
     return str(np.int(z%(10**e)))+'.'+zstr[1:decimal]+'x10^'+str(e)
+
+def my_std(arr):
+    """Calculates the STD of the arr"""
+    mu = np.mean(arr)
+    sq_sum = np.sum([(elem-mu)**2 for elem in arr]) #sums (x_i-mu)^2
+    return np.sqrt(sq_sum/len(arr)) 
+def my_sdom(arr):
+    return my_std(arr)/(np.sqrt(len(arr)))
 
 ##################### First Question ########################
 x = np.loadtxt(path+filename, delimiter=',', dtype = np.int32)
@@ -137,17 +153,18 @@ def mean_interval_fig_lab():
 
     fig = plt.figure()
     ax = fig.add_subplot(311)
-    ax.plot(x_arr1000, marr1000, 'ko', label = 'Chunks of 1000 events\nmean = ' + format_scinotation(np.mean(marr1000),5))
+    ax.plot(x_arr1000, marr1000, 'ko', label = 'Chunks of 1000 events\nSDOM = '+str(my_sdom(marr1000)))
+    #\nmean = ' + format_scinotation(np.mean(marr1000),5)+'
     ax.set_title('Mean Interval for Different Sized Chunks')
     ax.axhline(y = np.mean(marr1000), ls ='--', color = 'r')
 
     ax1 = fig.add_subplot(312)
-    ax1.plot(x_arr100, marr100, 'ko', label = 'Chunks of 100 events\nmean = ' + format_scinotation(np.mean(marr100),5))
+    ax1.plot(x_arr100, marr100, 'ko', label = 'Chunks of 100 events\nSDOM = '+str(my_sdom(marr100)))
     ax1.axhline(y = np.mean(marr100), ls ='--', color = 'r')
     ax1.set_ylabel('Mean Interval [clock ticks]', fontsize = 12)
    
     ax2 = fig.add_subplot(313)
-    ax2.plot(x_arr10, marr10, 'ko', label = 'Chunks of 10 events\nmean = ' + format_scinotation(np.mean(marr10),5))
+    ax2.plot(x_arr10, marr10, 'ko', label = 'Chunks of 10 events\nSDOM = '+str(my_sdom(marr10)))
     ax2.axhline(y = np.mean(marr10), ls ='--', color = 'r')
     ax2.set_xlabel("Start Index")
     
@@ -160,7 +177,7 @@ def mean_interval_fig_lab():
         ax.tick_params(axis='x', labelsize=8)
 
     return fig
-    
+
 #################### Figure 5 ########################
 def mean_datastep(datastep, dt):
     mean_arr = np.array([])
@@ -193,13 +210,13 @@ def mean_datastep_fig_lab(dt):
 
     fig = plt.figure()
     ax = fig.add_subplot(211)
-    ax.plot(x_arr1000, marr1000, 'ko', label = 'Intervals of 1000 events\nmean = ' + format_scinotation(np.mean(marr1000),5))
-    ax.set_title('Mean Interval for Different Sized Chunks')
+    ax.plot(x_arr1000, marr1000, 'ko', label = 'Increasing by 1000 events\nmean = ' + format_scinotation(np.mean(marr1000),5))
+    ax.set_title('Mean for Progressively Increasing Fractions of Data')
     ax.axhline(y = np.mean(marr1000), ls ='--', color = 'r')
     ax.set_ylabel('Mean Interval [clock ticks]')
 
     ax1 = fig.add_subplot(212)
-    ax1.plot(x_arr100, marr100, 'ko', label = 'Intervals of 100 events\nmean = ' + format_scinotation(np.mean(marr100),5))
+    ax1.plot(x_arr100, marr100, 'ko', label = 'Increasing by 100 events\nmean = ' + format_scinotation(np.mean(marr100),5))
     ax1.axhline(y = np.mean(marr100), ls ='--', color = 'r')
     ax1.set_ylabel('Mean Interval [clock ticks]')
     ax1.set_xlabel('Index Count')
@@ -219,109 +236,98 @@ def mean_datastep_fig_lab(dt):
 marr = mean_interval(1000)[1]
 mu = np.sum(marr)/np.float(marr.size)
 std = np.sqrt(np.sum((marr-mu)**2.)/(np.float(marr.size)-1.)) #standard deviation
-print mu, std, marr[0]
+#print mu, std, marr[0]
 
-########################## s/sqrtN #########################
-#
-#count = 10
-#rang = np.arange(10,500,10)
-#stddev_arr= np.array([])
-#for j in rang:
-#	ith_mean_arr=np.array([])
-#	for i in np.arange(j,10000,j):
-#		ith_mean=np.mean(dt[0:i])
-#		ith_mean_arr = np.append(ith_mean_arr,ith_mean)
-#	mu_i = np.sum(ith_mean_arr)/np.float(ith_mean_arr.size) 
-#	stddev_i = np.sqrt(np.sum((ith_mean_arr-mu_i)**2.)/(np.float(ith_mean_arr.size)-1.))
-#	stddev_arr = np.append(stddev_arr,stddev_i)
-
+########################## s/sqrtN  SDOM #########################
 ####### Figure 7: Variation of the standard deviation of the mean with the size of the data chunk averaged
-increment = 10
-std_means = np.array([])
-while increment < 500:
-	ith_mean_arr = np.array([])
-	dt_arr = np.arange(dt.size)
-	nstep = increment
-	for j in dt_arr[::nstep]:
-		if dt[j:j+nstep].size != 0:
-			m =np.mean(dt[j:j+nstep])
-		ith_mean_arr = np.append(ith_mean_arr,m)
-	std_m = np.std(ith_mean_arr)
-	std_means = np.append(std_means,std_m)
-	increment+=10
-fig=plt.figure()
-plt.plot(np.arange(10,500,10),std_means,'ko')
-plt.xlabel('Number of Events Averaged')
-plt.ylabel('Standard Deviation of the Mean')
-plt.close(fig)
-#plt.show()
-#plt.savefig('/Users/Diana/Desktop/Astro 120/Lab1/fig7_20000.png')
 
+    
+lower, upper, nstep = 20, 400, 10
+event_arr = np.arange(lower,upper+nstep,nstep)
+sdom_arr = [my_sdom(dt[0:elem]) for elem in event_arr]
+print event_arr
+#sdom_arr = np.array([])
+#for elem in event_arr:
+#    sdom_arr = np.append(sdom_arr, my_sdom(dt[0:elem]))
+def fig7():
+    fig=plt.figure()
+    plt.plot(event_arr,sdom_arr,'ko')
+    plt.title('SDOM for Different Sized Chunks')
+    plt.xlabel('Number of Events Averaged')
+    plt.ylabel('Standard Deviation of the Mean')
+    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    plt.grid(True)
+    return fig
 
 ############# Figure 8: Standard deviation of the mean vs. 1/sqrt(N) showing linear behavior. The green
 ############# line is the theoretical expectation with SDOM = s/sqrt(N), where s is the sample standard deviation
-def fig8(dt):
+def fig8():
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
-    x_arr = 1./np.sqrt(np.arange(10,500,10))
-    s = np.std(dt)
-    ax1.plot(x_arr,np.float(s)*x_arr)
-    ax1.plot(x_arr,std_means,'ro')
+    s = my_std(dt)
+    oneoverN = 1./np.sqrt(event_arr)
+    ax1.plot(oneoverN,np.float(s)*oneoverN,label='theorectical')
+    ax1.plot(oneoverN,sdom_arr,'ko',label='experimental')
     ax1.set_xlabel('1/sqrt(N)')
-    # r'$\frac{1}{\sqrt{N}}$'
+    ax1.set_xlabel(r'$\left(\frac{1}{\sqrt{N}}\right)$') #1/sqrt(N)
     ax1.set_ylabel('Standard deviation of the mean [ticks]')
-    ax1.set_xlim([np.amin(x_arr), np.amax(x_arr)])
-    #fig4.show()
-    #fig4.savefig('/Users/Diana/Desktop/Astro 120/Lab1/fig8_20000.png')
-
+    ax1.set_xlim([np.amin(oneoverN), np.amax(oneoverN)])
+    ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    ax1.legend(loc='lower right', fancybox = True, fontsize = 12)
+    return fig
 
 ######################### Histogram #########################
 def histogram(N, dt):
     # define the lower and upper bin edges and bin width
     bw = (dt.max()-dt.min())/(N-1.)
     bin1 = dt.min() + bw*np.arange(N)
-    
     # define the array to hold the occurrence count
     bincount = np.array([])
     # loop through the bins
     for bin in bin1:
         count = np.where((dt >= bin) & (dt < bin+bw))[0].size
         bincount = np.append(bincount, count)
-        
     # compute bin centers for plotting
     binc = bin1 + .5*bw
     return bw, binc, bincount
-def histogram_fig(N,dt):
+def histogram_fig(N,dt, vertical_line=False):
     bw, binc, bincount = histogram(N,dt)
     fig = plt.figure()
     plt.plot(binc, bincount, drawstyle='steps-mid')
     plt.title("Histogram with "+str(N)+" bins")
     plt.xlabel('Interval [ticks]')
     plt.ylabel('Frequency')
+    if vertical_line:
+        plt.axvline(x=binc[np.argmax(bincount)],ls='--',color='r',label='Peak at '+str(np.round(binc[np.argmax(bincount)]))+' ticks')
+        plt.legend()
     return fig
-    #plt.savefig('/Users/Diana/Desktop/astro temp/historgram_' + str(N)+'.png')
-#plt.savefig(figpath + "")
 
-#plt.show(histogram_fig(500,dt))
+plt.show(histogram_fig(150,dt))
 
 def poisson(bw, n, dt, tau):
     return bw*n*(1/tau)*np.exp(-dt/tau)  
-def fig10(N, dt): #the zoomed in histogram
-    return histogram_fig(N, dt[np.where(dt<4000)[0]])
+def fig10(N, dt, vertical_line=False): #the zoomed in histogram
+    return histogram_fig(N, dt[np.where(dt<4000)[0]], vertical_line)
+
+plt.show(fig10(200,dt,True))
 
 def fig11a(N, dt):
     dt_no_afterpulse = dt[np.where(dt > 3000)[0]]
     tau = np.mean(dt_no_afterpulse)
     bw, binc, bincount = histogram(N, dt_no_afterpulse)
     fig = plt.figure()
-    plt.plot(binc, bincount, drawstyle='steps-mid')
+    plt.plot(binc, bincount, c='k',drawstyle='steps-mid')
     y = poisson(bw, len(dt_no_afterpulse), dt_no_afterpulse,tau)
-    plt.plot(dt_no_afterpulse, y,',',label='Poisson fit',)
+    plt.plot(dt_no_afterpulse, y,',',c='grey',label='Poisson fit',)
     plt.title('Histogram with no afterpulses, N = '+str(N))
     plt.xlabel('Interval [ticks]')
     plt.ylabel('Frequency')
     plt.legend(loc='upper right')
+    plt.xlim([np.amin(dt_no_afterpulse), np.amax(dt_no_afterpulse)])
+    plt.ylim(bottom=0)
     return fig
+    
+plt.show(fig11a(50,dt))
 
 def fig11b(N, dt):
     dt_no_afterpulse = dt[np.where(dt > 3000)[0]]
@@ -329,15 +335,43 @@ def fig11b(N, dt):
     bw, binc, bincount = histogram(N, dt_no_afterpulse)
     fig = plt.figure()
     plt.yscale('log')
-    plt.plot(binc, bincount, drawstyle='steps-mid')
+    plt.plot(binc, bincount, c='k',drawstyle='steps-mid')
     y = poisson(bw, len(dt_no_afterpulse), dt_no_afterpulse,tau)
-    plt.plot(dt_no_afterpulse, y,',', label='Poisson fit')
+    plt.plot(dt_no_afterpulse, y,',', c='grey',label='Poisson fit')
     plt.title('Histogram with no afterpulses (log scale), N = '+str(N))
     plt.xlabel('Interval [ticks]')
     plt.ylabel('Frequency')
     plt.legend(loc='upper right')
+    plt.xlim([np.amin(dt_no_afterpulse), np.amax(dt_no_afterpulse)])
+    plt.ylim(bottom=0)
     return fig
+plt.show(fig11b(50,dt))
+
+
+#data1= np.transpose(np.loadtxt(path+'baes_vary1_150914_1448_43.csv' ,delimiter=',',dtype='int32'))[1]
+#data2=np.transpose(np.loadtxt(path+'baes_vary2_150914_1451_43.csv' ,delimiter=',',dtype='int32'))[1]
+#data3=np.transpose(np.loadtxt(path+'baes_vary3_150914_1454_43.csv' ,delimiter=',',dtype='int32'))[1]
+#data4=np.transpose(np.loadtxt(path+'baes_vary4_150914_1457_43.csv' ,delimiter=',',dtype='int32'))[1]
+#data5=np.transpose(np.loadtxt(path+'baes_vary5_150914_1457_43.csv' ,delimiter=',',dtype='int32'))[1]
+#data6=np.transpose(np.loadtxt(path+'baes_vary6_150914_1459_43.csv' ,delimiter=',',dtype='int32'))[1]
+#datas = [data1,data2,data3,data4,data5,data6]
+
+###fig12
+dt_arr = [t[1:] - t[0:-1] for t in datas]
+
+def fig12():
+    means_arr = [np.mean(dt) for dt in dt_arr]
+    std_arr = [my_std(dt) for dt in dt_arr]
+    fig = plt.figure()
+    plt.plot(means_arr, std_arr, 'ko')
+    plt.plot([0,1.0e7],[0,1.0e7], c='grey')
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    return fig
+plt.show(fig12())
     
+dt_arr = [dt[np.where(dt>3000)[0]] for dt in dt_arr]
+cumsum_arr = [np.cumsum(dt) for dt in dt_arr]
+
 ################################################################################
 ###############################----Figures-----#################################
 ################################################################################
@@ -350,18 +384,21 @@ def fig11b(N, dt):
 #plt.show(fig2(dt))
 #plt.show(fig3(dt))
 
-plt.show(fig2_3(dt))
-plt.show(fig1_1a(t))
-plt.show(mean_interval_fig_lab())
-plt.show(mean_datastep_fig_lab(dt))
+#plt.show(fig2_3(dt))
+#plt.show(fig1_1a(t))
+#plt.show(mean_interval_fig_lab())
+#plt.show(mean_datastep_fig_lab(dt))
+
+#9/19/15
+
 
 
 fig_path = '/Users/Diana/Desktop/Astro 120/Lab1/Figures/'
 num_events_str = '_' + str(num_events)
 #fig1_1a(t).savefig(fig_path+'fig1_2graphs'+num_events_str+'.png', dpi = 150)
 #fig2_3(dt).savefig(fig_path+'fig2&fig3'+num_events_str+'.png', dpi = 150)
-mean_interval_fig_lab().savefig(fig_path+'mean_interval'+num_events_str+'.png', dpi = 150)
-mean_datastep_fig_lab(dt).savefig(fig_path+'mean_datastep'+num_events_str+'.png', dpi = 150)
+#mean_interval_fig_lab().savefig(fig_path+'mean_interval'+num_events_str+'.png', dpi = 150)
+#mean_datastep_fig_lab(dt).savefig(fig_path+'mean_datastep'+num_events_str+'.png', dpi = 150)
 
 
 fig_arrx = []#[fig1(),fig2()]

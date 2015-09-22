@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-
+import scipy.misc
 
 path = "/Users/Diana/Desktop/Astro 120/Lab1/data/"
 file_arr = os.listdir(path) #import all the files into an array
@@ -451,63 +451,38 @@ def fig12():
 #fig12().savefig(fig_path+'fig12_ChangingLED'+num_events_str+'.png', dpi = 150)
 
 #cumsumdt_arr = [np.cumsum(dt) for dt in dt_arr]
+def poissonprob(mean,data,counts):
+	return np.exp(-mean) * mean**(data)*counts.size / scipy.misc.factorial(data) 
+
 dt_noafterpulse = dt[np.where(dt>3000)[0]]
-t1= np.cumsum(dt_noafterpulse[:2500])
+t1= np.cumsum(dt_noafterpulse)
 def fig14():
+    x = plt.hist(t1,bins=5000, histtype='step')[0]
+
     fig = plt.figure()
     
     ax = fig.add_subplot(311)
-    ax.plot(t1)
+    ax.plot(t1,c='k')
     ax.set_xlabel('Event Number', fontsize = 10)
     ax.set_ylabel('Time [ticks]', fontsize = 10)
     ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     ax.grid(True)
         
     ax1 = fig.add_subplot(312)
-    ax1.hist(t1, bins = 5000)
+    ax1.hist(t1, bins = 5000,histtype='step', linewidth=.25, color='k')
     ax1.set_xlabel('Time [ticks]', fontsize = 10)
     ax1.set_ylabel('Counts per Bin', fontsize = 10)
     ax1.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
 
     ax2=fig.add_subplot(313)
-    x = np.histogram(t1, bins=5000)[0]
-    ax2.hist(x, bins = 8)
+    x_fit = np.linspace(0,8,20000)
+    y_fit= poissonprob(np.mean(x),x_fit,x)
+    ax2.plot(x_fit, y_fit,color='b',label=r'$\bar{x} $= '+str(np.mean(x))+'\n'+r'$\sigma$ =' +"{:.5f}".format(my_std(x)))
+    ax2.hist(x, bins = 8, histtype='step',align='mid',range=(-0.5,7.5),color='k')
     ax2.set_xlabel('Counts per Bin', fontsize = 10)
     ax2.set_ylabel('Frequency', fontsize = 10)
-    ax2.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    ax2.legend(fontsize = 12)
 
     return fig
-plt.show(fig14())
-fig14().savefig(fig_path+'fig14_Cumsum'+num_events_str+'.png', dpi = 250)
-
-
-################################################################################
-###############################----Figures-----#################################
-################################################################################
-#plt.show(fig10(100, dt))
-#plt.show(fig11a(100, dt))
-#plt.show(fig11b(100,dt))
-
-#plt.show(fig1(t))
-#plt.show(fig1a(t))
-#plt.show(fig2(dt))
-#plt.show(fig3(dt))
-
-#plt.show(fig2_3(dt))
-#plt.show(fig1_1a(t))
-#plt.show(mean_interval_fig_lab())
-#plt.show(mean_datastep_fig_lab(dt))
-
-
-
-
-fig_path = '/Users/Diana/Desktop/Astro 120/Lab1/Figures/'
-num_events_str = '_' + str(num_events)
-#fig1_1a(t).savefig(fig_path+'fig1_2graphs'+num_events_str+'.png', dpi = 150)
-#fig2_3(dt).savefig(fig_path+'fig2&fig3'+num_events_str+'.png', dpi = 150)
-#mean_interval_fig_lab().savefig(fig_path+'mean_interval'+num_events_str+'.png', dpi = 150)
-#mean_datastep_fig_lab(dt).savefig(fig_path+'mean_datastep'+num_events_str+'.png', dpi = 150)
-
-
-
-
+#plt.show(fig14())
+fig14().savefig(fig_path+'fig14_Cumsum'+num_events_str+'.png', dpi = 500)

@@ -100,23 +100,24 @@ def fig3(dt):
 
 def fig2_3(dt):
     fig = plt.figure()
-    fig.suptitle('Interval between Subsequent Events', fontsize =16)
     ax = fig.add_subplot(211)
     ax.plot(dt, 'k',linewidth=.5, label = 'Points Joined')
-    ax.set_title('mean = ' + str(np.mean(dt))+r'$\pm$'+"{:.3f}".format(my_sdom(dt))+', '+r'$\sigma$'+' = '+str(my_std(dt)),fontsize=12)
+    ax.set_title('Interval between Subsequent Events', fontsize =16)
     #ax.set_xlabel('Event number', size = 12)
     ax.set_ylabel('Interval [clock ticks]', size = 12)
-    ax.legend(loc='upper right', fancybox = True)
+    #ax.legend(loc='upper right', fancybox = True)
     
     ax1 = fig.add_subplot(212)
-    ax1.plot(dt,'k,', label='Scattered')
+    #ax1.plot(dt,'k,', label='Scattered')
+    ax1.plot(dt,'k,', label='mean = ' + str(np.mean(dt))+r'$\pm$'+"{:.3f}".format(my_sdom(dt))+', '+r'$\sigma$'+' = '+str(my_std(dt)))
     ax1.set_xlabel('Event number')
     ax1.set_ylabel('Interval [clock ticks]')
-    ax1.legend(loc='upper right', fancybox = True)
+    ax1.legend(loc='upper right', fancybox = True, fontsize=13)
     return fig 
        
 #plt.show(fig2_3(dt))
-#fig2_3(dt).savefig(fig_path+'fig2_3_IntervalBetweenEvents'+num_events_str+'.png', dpi = 150)
+#fig2_3(dt).savefig(fig_path+'fig2_3_IntervalBetweenEvents'+num_events_str+'.png', dpi = 200)
+
 ##################### Second Question ######################
 # Compute the means in chunks
 def mean_interval(nstep):
@@ -230,7 +231,7 @@ def mean_datastep_fig_lab(dt):
 
     ax_arr = [ax, ax1]
     for ax in ax_arr:
-        ax.legend(loc='lower right', fancybox = True, fontsize = 8)
+        ax.legend(loc='lower right', fancybox = True, fontsize = 14)
         ax.grid(True)
         ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         ax.tick_params(axis='y', labelsize=8)
@@ -287,7 +288,7 @@ def fig8():
     ax1.set_ylabel('Standard deviation of the mean [ticks]')
     ax1.set_xlim([np.amin(oneoverN), np.amax(oneoverN)])
     ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    ax1.legend(loc='lower right', fancybox = True, fontsize = 12)
+    ax1.legend(loc='lower right', fancybox = True, fontsize = 16)
     return fig
 #plt.show(fig8())
 #fig8().savefig(fig_path+'fig8_LinRelationSDOM'+num_events_str+'.png', dpi = 150)
@@ -341,7 +342,7 @@ def fig9_10(N, N1, dt):
     ax.set_title('Histogram')
     ax.set_ylabel('Frequency')
     ax.set_xlim([0,5.0e7])
-    ax.legend(fancybox = True, fontsize = 10)
+    ax.legend(fancybox = True, fontsize = 16)
     ax.grid(True)
     
     ax1 = fig.add_subplot(212)
@@ -350,7 +351,7 @@ def fig9_10(N, N1, dt):
     ax1.set_ylabel('Frequency')
     #if vertical_line:
     ax1.axvline(x=binc1[np.argmax(bincount1)],ls='--',color='r',label='Peak at '+str(np.round(binc1[np.argmax(bincount1)]))+' ticks')
-    ax1.legend(fancybox = True, fontsize = 10)
+    ax1.legend(fancybox = True, fontsize = 16)
     ax1.grid(True)
     return fig
     
@@ -403,34 +404,37 @@ def fig11(N, dt):
     y = poisson(bw, len(dt_no_afterpulse), dt_no_afterpulse,tau)
 
     fig = plt.figure()
-    fig.suptitle('Histogram with no afterpulses, N = '+str(N)+' bins',fontsize=16)
+    fig.suptitle('Histogram with no afterpulses, N = '+str(N)+' bins\nmean = ' + str(tau)+r'$\pm$'+"{:.3f}".format(my_sdom(dt_no_afterpulse)),fontsize=16)
     ax = fig.add_subplot(121)
     ax1 = fig.add_subplot(122)
     ax1.set_yscale('log')
     ax.set_ylabel('Frequency')
-    ax.set_title('Normal Histogram',fontsize=12)
+    ax.set_title('Linear Scale',fontsize=12)
     ax1.set_title('Log Scale',fontsize=12)
     for ax in [ax,ax1]:
-        ax.plot(binc, bincount, c='k',drawstyle='steps-mid')
-        ax.plot(dt_no_afterpulse, y,',',c='b',label='Poisson fit',)
+        ax.plot(binc, bincount, c='grey',drawstyle='steps-mid')
+        #ax.plot(dt_no_afterpulse, y,',',c='k',label='Poisson fit',)
+        ax.scatter(dt_no_afterpulse, y,color='k',s=1,label='Poisson fit')
         ax.set_xlabel('Interval [ticks]')
         ax.legend(loc='upper right')
         ax.set_ylim(bottom=0)
         ax.set_xlim([np.amin(dt_no_afterpulse), np.amax(dt_no_afterpulse)])
+    fig.subplots_adjust(top=.85)
+
     return fig
 
 #plt.show(fig11(50, dt))
-#fig11(50,dt).savefig(fig_path+'fig11_HistogramWoutAfterpulse'+num_events_str+'.png', dpi = 150)
-
+#fig11(50,dt).savefig(fig_path+'fig11_HistogramWoutAfterpulse'+num_events_str+'.png', dpi = 500)
+data = np.transpose(np.loadtxt(path+"baes20_150902_1956_43.csv" ,delimiter=',',dtype='int32'))[1]
 data1= np.transpose(np.loadtxt(path+'baes_vary1_150914_1448_43.csv' ,delimiter=',',dtype='int32'))[1]
 data2=np.transpose(np.loadtxt(path+'baes_vary2_150914_1451_43.csv' ,delimiter=',',dtype='int32'))[1]
 data3=np.transpose(np.loadtxt(path+'baes_vary3_150914_1454_43.csv' ,delimiter=',',dtype='int32'))[1]
 data4=np.transpose(np.loadtxt(path+'baes_vary4_150914_1457_43.csv' ,delimiter=',',dtype='int32'))[1]
 data5=np.transpose(np.loadtxt(path+'baes_vary5_150914_1457_43.csv' ,delimiter=',',dtype='int32'))[1]
 data6=np.transpose(np.loadtxt(path+'baes_vary6_150914_1459_43.csv' ,delimiter=',',dtype='int32'))[1]
-datas = [data1,data2,data3,data4,data5,data6]
+datas = [data,data1,data2,data3,data4,data5,data6]
 
-###fig12
+######## fig12 #######
 dt_arr = [t[1:] - t[0:-1] for t in datas]
 dt_arr = [dt[np.where(dt>3000)[0]] for dt in dt_arr]
 
@@ -441,24 +445,24 @@ def fig12():
     plt.plot(means_arr, std_arr, 'ko',label='experimental')
     plt.plot([0,1.0e7],[0,1.0e7], c='grey', label='theoretical')
     plt.title('Changing the LED Brightness')
-    plt.xlabel('Interval sampe mean [ticks]')
+    plt.xlabel('Interval sample mean [ticks]')
     plt.ylabel('Interval Standard Deviation [ticks]')
     plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    plt.legend(loc='lower right', fancybox = True, fontsize = 12)
+    plt.legend(loc='lower right', fancybox = True, fontsize = 16)
     plt.grid(True)
     return fig
-#plt.show(fig12())
-#fig12().savefig(fig_path+'fig12_ChangingLED'+num_events_str+'.png', dpi = 150)
+plt.show(fig12())
+fig12().savefig(fig_path+'fig12_ChangingLED'+num_events_str+'.png', dpi = 350)
 
-#cumsumdt_arr = [np.cumsum(dt) for dt in dt_arr]
+########## fig 14 ###########
 def poissonprob(mean,data,counts):
 	return np.exp(-mean) * mean**(data)*counts.size / scipy.misc.factorial(data) 
 
 dt_noafterpulse = dt[np.where(dt>3000)[0]]
-t1= np.cumsum(dt_noafterpulse)
+t1 = np.cumsum(dt_noafterpulse)
 def fig14():
-    x = plt.hist(t1,bins=5000, histtype='step')[0]
-
+    bin_num = 10000
+    x = plt.hist(t1,bins=bin_num, histtype='step')[0]
     fig = plt.figure()
     
     ax = fig.add_subplot(311)
@@ -467,22 +471,27 @@ def fig14():
     ax.set_ylabel('Time [ticks]', fontsize = 10)
     ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     ax.grid(True)
+    ax.set_title(str(bin_num)+' bins')
+    ax.legend()
         
     ax1 = fig.add_subplot(312)
-    ax1.hist(t1, bins = 5000,histtype='step', linewidth=.25, color='k')
+    ax1.hist(t1, bins = bin_num,histtype='step', linewidth=.25, color='k')
     ax1.set_xlabel('Time [ticks]', fontsize = 10)
     ax1.set_ylabel('Counts per Bin', fontsize = 10)
     ax1.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    ax1.legend()
 
     ax2=fig.add_subplot(313)
     x_fit = np.linspace(0,8,20000)
     y_fit= poissonprob(np.mean(x),x_fit,x)
-    ax2.plot(x_fit, y_fit,color='b',label=r'$\bar{x} $= '+str(np.mean(x))+'\n'+r'$\sigma$ =' +"{:.5f}".format(my_std(x)))
+    ax2.plot(x_fit, y_fit,color='b',label=r'$\bar{x} $= '+str(np.mean(x))+'\n'+r'$\sigma^{2}$ =' +"{:.5f}".format(my_std(x)**2))
     ax2.hist(x, bins = 8, histtype='step',align='mid',range=(-0.5,7.5),color='k')
     ax2.set_xlabel('Counts per Bin', fontsize = 10)
     ax2.set_ylabel('Frequency', fontsize = 10)
-    ax2.legend(fontsize = 12)
+    ax2.legend(loc='upper right',fontsize = 14)
+    fig.subplots_adjust(hspace=.5)
 
     return fig
+    
 #plt.show(fig14())
-fig14().savefig(fig_path+'fig14_Cumsum'+num_events_str+'.png', dpi = 500)
+#fig14().savefig(fig_path+'fig14_Cumsum'+num_events_str+'.png', dpi = 500)

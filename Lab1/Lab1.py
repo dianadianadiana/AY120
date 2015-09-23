@@ -176,15 +176,15 @@ def mean_interval_fig_lab():
     
     ax_arr = [ax, ax1,ax2]
     for ax in ax_arr:
-        ax.legend(loc='upper right', fancybox = True, fontsize = 12)
+        ax.legend(loc='upper right', fancybox = True, fontsize = 11)
         ax.grid(True)
         ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-        ax.tick_params(axis='y', labelsize=8)
-        ax.tick_params(axis='x', labelsize=8)
+        ax.tick_params(axis='y', labelsize=10)
+        ax.tick_params(axis='x', labelsize=10)
     print [my_std(arr) for arr in m_arr]
     return fig
 #plt.show(mean_interval_fig_lab())
-#mean_interval_fig_lab().savefig(fig_path+'fig4&6_MeanOfDiffChunks'+num_events_str+'.png', dpi = 150)
+#mean_interval_fig_lab().savefig(fig_path+'fig4&6_MeanOfDiffChunks'+num_events_str+'.png', dpi = 300)
 
 #################### Figure 5 ########################
 def mean_datastep(datastep, dt):
@@ -219,7 +219,7 @@ def mean_datastep_fig_lab(dt):
     ax = fig.add_subplot(211)
     #"{:.3f}".format(3.1415926))
     ax.plot(x_arr1000, marr1000, 'ko', label = 'Increasing by 1000 events\nmean = '+str(np.mean(marr1000))+r'$\pm$'+"{:.3f}".format(my_sdom(marr1000)))
-    ax.set_title('Mean for Progressively Increasing Fractions of Data')
+    ax.set_title('Mean for Progressively Increasing Fractions of Data',fontsize=15)
     ax.axhline(y = np.mean(marr1000), ls ='--', color = 'r')
     ax.set_ylabel('Mean Interval [clock ticks]')
 
@@ -231,16 +231,16 @@ def mean_datastep_fig_lab(dt):
 
     ax_arr = [ax, ax1]
     for ax in ax_arr:
-        ax.legend(loc='lower right', fancybox = True, fontsize = 14)
+        ax.legend(loc='lower right', fancybox = True, fontsize = 16)
         ax.grid(True)
         ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-        ax.tick_params(axis='y', labelsize=8)
-        ax.tick_params(axis='x', labelsize=8)
+        ax.tick_params(axis='y', labelsize=12)
+        ax.tick_params(axis='x', labelsize=12)
         #ax.xticklabel = np.arange(0,20000,2500)
 
     return fig
 #plt.show(mean_datastep_fig_lab(dt))
-#mean_datastep_fig_lab(dt).savefig(fig_path+'fig5_MeanOfDiffFractions'+num_events_str+'.png', dpi = 150)
+#mean_datastep_fig_lab(dt).savefig(fig_path+'fig5_MeanOfDiffFractions'+num_events_str+'.png', dpi = 300)
 
 ################### Standard deviation part #############
 marr = mean_interval(1000)[1]
@@ -265,14 +265,16 @@ def fig7():
     fig=plt.figure()
     plt.plot(event_arr,sdom_arr,'ko')
     plt.title('SDOM for Different Sized Chunks')
-    plt.xlabel('Number of Events Averaged')
-    plt.ylabel('Standard Deviation of the Mean')
+    plt.xlabel('Number of Events Averaged',fontsize=16)
+    plt.ylabel('Standard Deviation of the Mean',fontsize=16)
     plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    plt.tick_params(axis='y', labelsize=14)
+    plt.tick_params(axis='x', labelsize=14)
     plt.grid(True)
     return fig
     
 #plt.show(fig7())
-#fig7().savefig(fig_path+'fig7_SDOMforDiffSizedChunks'+num_events_str+'.png', dpi = 150)
+#fig7().savefig(fig_path+'fig7_SDOMforDiffSizedChunks'+num_events_str+'.png', dpi = 200)
 
 ############# Figure 8: Standard deviation of the mean vs. 1/sqrt(N) showing linear behavior. The green
 ############# line is the theoretical expectation with SDOM = s/sqrt(N), where s is the sample standard deviation
@@ -284,14 +286,17 @@ def fig8():
     ax1.plot(oneoverN,np.float(s)*oneoverN,'k',label='theorectical')
     ax1.plot(oneoverN,sdom_arr,'ko', label='experimental')
     ax1.set_title('Linear Relation\nbetween Standard Deviation of the Means and '+ r'$\left(\frac{1}{\sqrt{N}}\right)$')
-    ax1.set_xlabel(r'$\left(\frac{1}{\sqrt{N}}\right)$') #1/sqrt(N)
-    ax1.set_ylabel('Standard deviation of the mean [ticks]')
+    ax1.set_xlabel(r'$\left(\frac{1}{\sqrt{N}}\right)$',fontsize=16) #1/sqrt(N)
+    ax1.set_ylabel('Standard deviation of the mean [ticks]',fontsize=16)
     ax1.set_xlim([np.amin(oneoverN), np.amax(oneoverN)])
     ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     ax1.legend(loc='lower right', fancybox = True, fontsize = 16)
+    ax1.grid(True)
+    ax1.tick_params(axis='y', labelsize=14)
+    ax1.tick_params(axis='x', labelsize=14)
     return fig
 #plt.show(fig8())
-#fig8().savefig(fig_path+'fig8_LinRelationSDOM'+num_events_str+'.png', dpi = 150)
+#fig8().savefig(fig_path+'fig8_LinRelationSDOM'+num_events_str+'.png', dpi = 300)
 
 
 ######################### Histogram #########################
@@ -419,12 +424,13 @@ def fig11(N, dt):
         ax.legend(loc='upper right')
         ax.set_ylim(bottom=0)
         ax.set_xlim([np.amin(dt_no_afterpulse), np.amax(dt_no_afterpulse)])
+        ax.grid(True)
     fig.subplots_adjust(top=.85)
 
     return fig
 
 #plt.show(fig11(50, dt))
-#fig11(50,dt).savefig(fig_path+'fig11_HistogramWoutAfterpulse'+num_events_str+'.png', dpi = 500)
+#fig11(50,dt).savefig(fig_path+'fig11_HistogramWoutAfterpulse'+num_events_str+'.png', dpi = 300)
 data = np.transpose(np.loadtxt(path+"baes20_150902_1956_43.csv" ,delimiter=',',dtype='int32'))[1]
 data1= np.transpose(np.loadtxt(path+'baes_vary1_150914_1448_43.csv' ,delimiter=',',dtype='int32'))[1]
 data2=np.transpose(np.loadtxt(path+'baes_vary2_150914_1451_43.csv' ,delimiter=',',dtype='int32'))[1]
@@ -444,15 +450,17 @@ def fig12():
     fig = plt.figure()
     plt.plot(means_arr, std_arr, 'ko',label='experimental')
     plt.plot([0,1.0e7],[0,1.0e7], c='grey', label='theoretical')
-    plt.title('Changing the LED Brightness')
-    plt.xlabel('Interval sample mean [ticks]')
-    plt.ylabel('Interval Standard Deviation [ticks]')
+    plt.title('Changing the LED Brightness',fontsize=16)
+    plt.xlabel('Interval sample mean [ticks]',fontsize = 14)
+    plt.ylabel('Interval Standard Deviation [ticks]',fontsize = 14)
     plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
     plt.legend(loc='lower right', fancybox = True, fontsize = 16)
+    plt.tick_params(axis='y', labelsize=14)
+    plt.tick_params(axis='x', labelsize=14)
     plt.grid(True)
     return fig
-plt.show(fig12())
-fig12().savefig(fig_path+'fig12_ChangingLED'+num_events_str+'.png', dpi = 350)
+#plt.show(fig12())
+#fig12().savefig(fig_path+'fig12_ChangingLED'+num_events_str+'.png', dpi = 300)
 
 ########## fig 14 ###########
 def poissonprob(mean,data,counts):
@@ -460,8 +468,7 @@ def poissonprob(mean,data,counts):
 
 dt_noafterpulse = dt[np.where(dt>3000)[0]]
 t1 = np.cumsum(dt_noafterpulse)
-def fig14():
-    bin_num = 10000
+def fig14(bin_num):
     x = plt.hist(t1,bins=bin_num, histtype='step')[0]
     fig = plt.figure()
     
@@ -492,6 +499,48 @@ def fig14():
     fig.subplots_adjust(hspace=.5)
 
     return fig
+
+bin_num =10000
+#plt.show(fig14(bin_num))
+#fig14(bin_num).savefig(fig_path+'fig14_Cumsum'+num_events_str+'.png', dpi = 300)
+
+def fig14_diff(bin1,bin2,bin3):
+    x1 = plt.hist(t1,bins=bin1, histtype='step')[0]
+    x2 = plt.hist(t1,bins=bin2, histtype='step')[0]
+    x3 = plt.hist(t1,bins=bin3, histtype='step')[0]
+
+    x_fit = np.linspace(0,8,20000)
+    y_fit1 = poissonprob(np.mean(x1),x_fit,x1)
+    y_fit2 = poissonprob(np.mean(x2),x_fit,x2)
+    y_fit3 = poissonprob(np.mean(x3),x_fit,x3)
+
+    fig = plt.figure()
     
-#plt.show(fig14())
-#fig14().savefig(fig_path+'fig14_Cumsum'+num_events_str+'.png', dpi = 500)
+    ax = fig.add_subplot(311)
+    ax.plot(x_fit, y_fit1,color='b',label=r'$\bar{x} $= '+str(np.mean(x1))+'\n'+r'$\sigma^{2}$ =' +"{:.5f}".format(my_std(x1)**2))
+    ax.hist(x1, bins = 8, histtype='step',align='mid',range=(-0.5,7.5),color='k')
+    ax.set_title(str(bin1)+' bins')
+    ax.legend()
+        
+    ax1 = fig.add_subplot(312)
+    ax1.plot(x_fit, y_fit2,color='b',label=r'$\bar{x} $= '+str(np.mean(x2))+'\n'+r'$\sigma^{2}$ =' +"{:.5f}".format(my_std(x2)**2))
+    ax1.hist(x2, bins = 8, histtype='step',align='mid',range=(-0.5,7.5),color='k')
+    ax1.set_title(str(bin2)+' bins')
+    ax1.legend()
+
+    ax2=fig.add_subplot(313)
+    ax2.plot(x_fit, y_fit3,color='b',label=r'$\bar{x} $= '+str(np.mean(x3))+'\n'+r'$\sigma^{2}$ =' +"{:.5f}".format(my_std(x3)**2))
+    ax2.hist(x3, bins = 8, histtype='step',align='mid',range=(-0.5,7.5),color='k')
+    ax2.set_title(str(bin3)+' bins')
+    ax2.set_xlabel('Counts per Bin', fontsize = 16)
+
+    for ax in [ax,ax1,ax2]:
+        ax.set_ylabel('Frequency', fontsize = 16)
+        ax.legend(loc='upper right',fontsize = 14)
+        ax.grid(True)
+    fig.subplots_adjust(hspace=.5)
+    
+    return fig
+
+#plt.show(fig14_diff(5000,10000,20000))
+#fig14_diff(5000,10000,20000).savefig(fig_path+'fig14_CumsumDiffBins'+num_events_str+'.png', dpi = 300)

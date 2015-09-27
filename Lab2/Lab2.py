@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os 
 
-path = "/Users/Diana/Desktop/Astro 120/Lab2/data/baes_sun/"
+path = "/Users/Diana/Desktop/Astro 120/Lab2/data/baes_greenlaser/"
 files = os.listdir(path) # read in all 100 files
 filename = files[50] # choose one file
 data = np.loadtxt(path+filename,skiprows=17,usecols=(0,1) )
@@ -60,7 +60,7 @@ def peak_verifier(index_arr, arr, n, max = True):
                 curr_min = np.amin(arr[curr_lower:curr_upper])
                 next_min = np.amin(arr[next_lower:next_upper])
 
-            if (max and arr[curr_index] == curr_min) or (not max and arr[curr_index] == curr_min):
+            if (max and arr[curr_index] == curr_max) or (not max and arr[curr_index] == curr_min):
                 delete_arr.append(k+1)
             else:
                 delete_arr.append(k)  
@@ -68,9 +68,9 @@ def peak_verifier(index_arr, arr, n, max = True):
     return np.delete(index_arr, delete_arr)
     
 # use min_peaks for absorption and max_peaks for emission
-peaks = min_peaks(intensity_arr)
+peaks = max_peaks(intensity_arr)
 peaks = limit_applier(peaks, intensity_arr, lower_limit = 250)
-peaks = peak_verifier(peaks, intensity_arr, 100, max = False)
+peaks = peak_verifier(peaks, intensity_arr, 100, max = True)
 print peaks
 
 fig = plt.figure()

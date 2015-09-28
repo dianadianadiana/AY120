@@ -11,6 +11,7 @@ data=np.transpose(data)
 
 pixel_arr = data[0]
 intensity_arr = data[1]
+name = "neon"
     
 def min_peaks(arr):
     """ For Absorption -- Returns an array of the indexes where the indexes indicate where the minima are"""
@@ -89,20 +90,22 @@ def centroids(index_arr, x_arr, y_arr, peak_width):
 print len(peaks)
 centroids = centroids(peaks, pixel_arr, intensity_arr, 10)
 
-def spectra_fig():
+def spectra_fig(name):
     fig = plt.figure()
-    plt.plot(pixel_arr, intensity_arr, linewidth =.5)
+    plt.plot(pixel_arr, intensity_arr, linewidth =.75)
     plt.xlabel('Pixels') ; plt.ylabel('Intensity')
-    plt.title('Spectra of: ' + str(filename))
+    plt.scatter(centroids, intensity_arr[centroids], color='k', s= 5)
+    plt.title('Spectra of: ' + name.upper())
     for centroid in centroids:
-        plt.axvline(x=centroid, c='r',ls ='--', label = str(centroid))
-        
+        plt.axvline(x=centroid, c='r',ls ='--', label = str(centroid), linewidth =.75)
+    plt.grid(True)
+    plt.xlim([0,2048]) ; plt.ylim(bottom=0)
     plt.legend(loc=2, fontsize =10)
     return fig
-plt.show(spectra_fig())
-
-#figure_path = "/Users/Diana/Desktop/"
-#spectra_fig().savefig(figure_path + "test.png",dpi=200)
+    
+plt.show(spectra_fig(name))
+figure_path = "/Users/Diana/Desktop/Astro 120/Lab2/Figures/"
+#spectra_fig(name).savefig(figure_path + name + "_spectra.png",dpi=300)
 
 neonspec=  np.array([585.249,588.189,594.483,597.553,603.0,607.434,609.616,
 614.306,616.359,621.72,626.649,630.479,633.443,638.299,640.225,650.653,653.288,659.895,667.828,671.704])
@@ -122,10 +125,26 @@ def linleastsquares(data): #data : x,y  data= np.array
     
     left = np.array([[n,sum_x],[sum_x,sum_xsq]])
     right = np.array([[sum_y],[sum_xy]])
-    
+
     inv_left = np.linalg.inv(left)
     final = np.dot(inv_left,right)
     return [final[0], final[1]]
+    
+def linleastsquares(data, poly):
+    sum_x_arr = [np.sum(data[0]**i) for i in np.arange(1,(poly-1)*2+1)]
+    sum_xy_arr = [np.sum(data[0]**i * data[1]) for i in np.arange(0, poly)]
+    
+    left = [[None for i in range(poly)] for j in range(poly)]
+    right = [[i] for i in sum_xy_arr]
+    for i in range(poly):
+        for j in range(poly):
+            if i == 0 and j == 0:
+                left[i][j] = len(data[0])
+            else:
+                left[i][j] = sum_x_arr[i+j-1]
+    inv_left = np.linalg.inv(left)
+    final = np.dot(inv_left,right)
+    return final
 
 def linleastsquares_quad(data):
     n = len(data[0])
@@ -140,10 +159,11 @@ def linleastsquares_quad(data):
     
     left = np.array([[n,sum_x,sum_x2],[sum_x,sum_x2,sum_x3],[sum_x2,sum_x3,sum_x4]])
     right = np.array([[sum_y],[sum_xy],[sum_x2y]])
-	
+
     inv_left = np.linalg.inv(left)
     final = np.dot(inv_left, right)
-    return [final[0], final[1], final[2]]
+    return final
+    #return [final[0], final[1], final[2]]
     
 def linleastsquares_4(data):
     n = len(data[0])
@@ -169,13 +189,13 @@ def linleastsquares_4(data):
 x = neonspec
 y = centroids
 data = [x,y]
-linear = linleastsquares(data)
+linear = linleastsquares(data, 2)
 ideal_linear = linear[1]*x+linear[0]
 
-quad = linleastsquares_quad(data)
+quad = linleastsquares(data, 3)
 ideal_quad = quad[2]*x**2 + quad[1]*x + quad[0]
 
-lls4 = linleastsquares_4(data)
+lls4 = linleastsquares(data, 4)
 ideal_4 = lls4[3]*x**3 + lls4[2]*x**2 + lls4[1]*x + lls4[0]
 
 def idealfigs():

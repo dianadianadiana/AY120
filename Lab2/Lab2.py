@@ -2,17 +2,45 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os 
 
-#greenlaser, sun, incan, LED, mecury, neon, redlaser,
-path = "/Users/Diana/Desktop/Astro 120/Lab2/data/baes_neon/"
-files = os.listdir(path) # read in all 100 files
-filename = files[50] # choose one file
-data = np.genfromtxt(path+filename,skip_header=17, skip_footer=1)
-data=np.transpose(data)
+#from matplotlib import rc
+#rc('font',**{'family':'serif','serif':['Computer Modern']})
+#rc('text', usetex=True)
+#from pylab import rcParams
+#rcParams['figure.figsize'] = 10, 5
 
-pixel_arr = data[0]
-intensity_arr = data[1]
-name = "neon"
+#greenlaser, sun, incan, LED, mecury, neon, redlaser,
+#path = "/Users/Diana/Desktop/Astro 120/Lab2/data/baes_neon/"
+#files = os.listdir(path) # read in all 100 files
+#filename = files[50] # choose one file
+#data = np.genfromtxt(path+filename,skip_header=17, skip_footer=1)
+#data=np.transpose(data)
+
+def get_folder(data_path, name):
+    return data_path + 'baes_' + name + '/'
     
+#greenlaser, sun, incan, LED, mecury, neon, redlaser,
+data_path = "/Users/Diana/Desktop/Astro 120/Lab2/data/"
+folder_greenlaser = get_folder(data_path,'greenlaser')#all the file names in this folder
+folder_neon = get_folder(data_path,'neon')
+folder_incan = get_folder(data_path,'incan')
+
+def average_intensity(folder):
+    files = os.listdir(folder)
+    intensity_all_arr = []
+    for fil in files:
+        data = np.transpose(np.genfromtxt(folder+fil,skip_header=17, skip_footer=1))
+        intensity_all_arr.append(data[1])
+    intensity_all_arr = np.transpose(intensity_all_arr)
+    intensity_arr = []
+    for elem in intensity_all_arr:
+        intensity_arr.append(np.mean(elem))
+    return np.round(intensity_arr)
+
+
+pixel_arr = np.arange(2048)
+intensity_arr = average_intensity(folder_neon)
+name = "neon"
+
 def min_peaks(arr):
     """ For Absorption -- Returns an array of the indexes where the indexes indicate where the minima are"""
     return [i for i in range(1, len(arr)-1) if arr[i-1]>arr[i] and arr[i+1]>arr[i]]
@@ -59,11 +87,6 @@ def peak_verifier(index_arr, arr, n, max = True):
                 delete_arr.append(k)  
         k+=1
     return np.delete(index_arr, delete_arr)
-    
-# use min_peaks for absorption and max_peaks for emission
-#peaks = max_peaks(intensity_arr)
-#peaks = limit_applier(peaks, intensity_arr, lower_limit = 250)
-#peaks = peak_verifier(peaks, intensity_arr, 20, max = True)
 
 def peaks(intensity_arr, n = 10, lower_limit = 500, max = True):
     if max:
@@ -76,29 +99,30 @@ def peaks(intensity_arr, n = 10, lower_limit = 500, max = True):
 
 peaks = peaks(intensity_arr, n = 10, lower_limit = 200, max = True)
 
+#lower limit is 200
 #center of mass of peak=centroid
 def centroids(index_arr, x_arr, y_arr, peak_width):
-        n = peak_width/2.
+        n = peak_width/2
 	centroids= []
+	print n
 	for peak_index in index_arr:
 		x_range = x_arr[peak_index-n:peak_index+n]
 		y_range = y_arr[peak_index-n:peak_index+n]
-		centroid = np.sum(x_range*y_range)/np.sum(y_range)
+		centroid = np.sum(x_range*y_range)/np.sum(y_range) #<x>
 		centroids.append(centroid)
 	return centroids
+def centroid_error(
     
-print len(peaks)
-centroids = centroids(peaks, pixel_arr, intensity_arr, 10)
+centroids = centroids(peaks, pixel_arr, intensity_arr, peak_width = 10)
 
 def spectra_fig(name):
     fig = plt.figure()
     plt.plot(pixel_arr, intensity_arr, linewidth =.75)
-    plt.xlabel('Pixels') ; plt.ylabel('Intensity')
-    plt.scatter(centroids, intensity_arr[centroids], color='k', s= 5)
-    plt.title('Spectra of: ' + name.upper())
+    plt.xlabel('Pixels [count]') ; plt.ylabel('Intensity [ADU]')
+    plt.scatter(centroids, intensity_arr[peaks], color='k', s= 5)
+    plt.title('Spectra of: ' + name.upper() + ' -- ' +str(len(centroids)) + ' peaks')
     for centroid in centroids:
         plt.axvline(x=centroid, c='r',ls ='--', label = str(centroid), linewidth =.75)
-    plt.grid(True)
     plt.xlim([0,2048]) ; plt.ylim(bottom=0)
     plt.legend(loc=2, fontsize =10)
     return fig
@@ -109,28 +133,18 @@ figure_path = "/Users/Diana/Desktop/Astro 120/Lab2/Figures/"
 
 neonspec=  np.array([585.249,588.189,594.483,597.553,603.0,607.434,609.616,
 614.306,616.359,621.72,626.649,630.479,633.443,638.299,640.225,650.653,653.288,659.895,667.828,671.704])
+mercuryspec = np.array([405.4,436.6,487.7,542.4,546.5,577.7,580.2,584.0,587.6,593.4,599.7,611.6,625.7,631.1,650.8,662.6,
+687.7,693.7,707,712.3,760.0,811.0])
+spec = neonspec
+print len(spec)
+print len(centroids)
 
-fig = plt.figure()
-plt.plot(neonspec, centroids, 'o')
-#plt.plot(neonspec, centroids)
-
-plt.show()
-
-def linleastsquares(data): #data : x,y  data= np.array
-    n = len(data[0])
-    sum_x = np.sum(data[0])
-    sum_y = np.sum(data[1])
-    sum_xsq = np.sum(data[0] ** 2)
-    sum_xy = np.sum(data[0]*data[1])
-    
-    left = np.array([[n,sum_x],[sum_x,sum_xsq]])
-    right = np.array([[sum_y],[sum_xy]])
-
-    inv_left = np.linalg.inv(left)
-    final = np.dot(inv_left,right)
-    return [final[0], final[1]]
     
 def linleastsquares(data, poly):
+    """
+    data: [x,y] what you are trying to fit
+    poly: the number of terms you want i.e. poly = 3 --> ax**2 + bx + c
+    """
     sum_x_arr = [np.sum(data[0]**i) for i in np.arange(1,(poly-1)*2+1)]
     sum_xy_arr = [np.sum(data[0]**i * data[1]) for i in np.arange(0, poly)]
     
@@ -146,67 +160,48 @@ def linleastsquares(data, poly):
     final = np.dot(inv_left,right)
     return final
 
-def linleastsquares_quad(data):
-    n = len(data[0])
-    
-    sum_x = np.sum(data[0])
-    sum_x2 = np.sum(data[0] ** 2)
-    sum_x3 = np.sum(data[0] ** 3)
-    sum_x4 = np.sum(data[0] ** 4)
-    sum_y = np.sum(data[1])
-    sum_xy = np.sum(data[0]*data[1])
-    sum_x2y = np.sum(data[0] ** 2 * data[1])
-    
-    left = np.array([[n,sum_x,sum_x2],[sum_x,sum_x2,sum_x3],[sum_x2,sum_x3,sum_x4]])
-    right = np.array([[sum_y],[sum_xy],[sum_x2y]])
 
-    inv_left = np.linalg.inv(left)
-    final = np.dot(inv_left, right)
-    return final
-    #return [final[0], final[1], final[2]]
-    
-def linleastsquares_4(data):
-    n = len(data[0])
-    
-    sum_x = np.sum(data[0])
-    sum_x2 = np.sum(data[0] ** 2)
-    sum_x3 = np.sum(data[0] ** 3)
-    sum_x4 = np.sum(data[0] ** 4)
-    sum_x5 = np.sum(data[0] ** 5)
-    sum_x6 = np.sum(data[0] ** 6)
-    sum_y = np.sum(data[1])
-    sum_xy = np.sum(data[0]*data[1])
-    sum_x2y = np.sum(data[0] ** 2 * data[1])
-    sum_x3y = np.sum(data[0] ** 3 * data[1])
-    
-    left = np.array([[n,sum_x,sum_x2,sum_x3],[sum_x,sum_x2,sum_x3,sum_x4],[sum_x2,sum_x3,sum_x4,sum_x5],[sum_x3,sum_x4,sum_x5,sum_x6]])
-    right = np.array([[sum_y],[sum_xy],[sum_x2y],[sum_x3y]])
-	
-    inv_left = np.linalg.inv(left)
-    final = np.dot(inv_left, right)
-    return [final[0], final[1], final[2], final[3]]
-    
-x = neonspec
-y = centroids
-data = [x,y]
-linear = linleastsquares(data, 2)
-ideal_linear = linear[1]*x+linear[0]
+linear = linleastsquares([centroids, spec], 2)
+quad = linleastsquares([centroids, spec], 3)
 
-quad = linleastsquares(data, 3)
-ideal_quad = quad[2]*x**2 + quad[1]*x + quad[0]
+ideal_linear = linear[1]*centroids+linear[0]
+ideal_quad = quad[2]*centroids*centroids + quad[1]*centroids + quad[0]
 
-lls4 = linleastsquares(data, 4)
-ideal_4 = lls4[3]*x**3 + lls4[2]*x**2 + lls4[1]*x + lls4[0]
+#lls4 = linleastsquares(data, 4)
+#ideal_4 = lls4[3]*x**3 + lls4[2]*x**2 + lls4[1]*x + lls4[0]
 
 def idealfigs():
-    fig = plt.figure()
-    plt.plot(neonspec, centroids,'o',label='experimental')
-    plt.plot(neonspec, ideal_linear,'--',label='linear best fit')
-    plt.plot(neonspec, ideal_quad,'--',label='quadratic best fit')
-    plt.plot(neonspec, ideal_4,'--',label='4 best fit')
+    fig = plt.figure(figsize = (10,5))
+    plt.plot(centroids,neonspec,'o',label='experimental')
+    plt.plot(centroids, ideal_linear,'--',label='linear best fit')
+    plt.plot(centroids, ideal_quad,'--',label='quadratic best fit')
+    #plt.plot(neonspec, ideal_4,'--',label='4 best fit')
+    plt.title('Least Squares Fitting for: ' + name.upper(), fontsize =20);    
+    plt.xlabel('Pixels',fontsize=20);    plt.ylabel('Wavelength [nm]',fontsize=20)
+    plt.xlim([np.amin(centroids), np.amax(centroids)])
+    plt.legend(numpoints=1, loc = 4, fontsize = 18)
+    plt.tick_params(labelsize=16)
+    plt.tight_layout()
+    return fig
+    
+plt.show(idealfigs())
+#idealfigs().savefig(figure_path + name + "_idealfigs.png",dpi=300)
 
-    plt.xlabel('Wavelength[nm]')
-    plt.ylabel('Pixels')
+def risiduals():
+    fig = plt.figure()
+    lin_r = ideal_linear - neonspec 
+    quad_r = ideal_quad-  neonspec
+    
+    plt.plot(centroids, lin_r,'o', label = 'linear residuals')
+    plt.plot(centroids, quad_r,'o', label = 'quadratic residuals')
+    
+    plt.xlabel('Pixels',fontsize=16);    plt.ylabel('Difference of Fit and ',fontsize=16)
+
     plt.legend()
     return fig
-plt.show(idealfigs())
+    
+plt.show(risiduals())
+#risiduals().savefig(figure_path + name + "_risiduals.png",dpi=300)
+
+
+

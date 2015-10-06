@@ -101,6 +101,8 @@ peaks = peaks(intensity_arr, n = 10, lower_limit = 200, max = True)
 
 #lower limit is 200
 #center of mass of peak=centroid
+#http://ugastro.berkeley.edu/infrared09/PDF-2009/centroid-error.pdf
+
 def centroids(index_arr, x_arr, y_arr, peak_width):
         n = peak_width/2
 	centroids= []
@@ -109,12 +111,17 @@ def centroids(index_arr, x_arr, y_arr, peak_width):
 		x_range = x_arr[peak_index-n:peak_index+n]
 		y_range = y_arr[peak_index-n:peak_index+n]
 		centroid = np.sum(x_range*y_range)/np.sum(y_range) #<x>
-		centroids.append(centroid)
-	return centroids
-def centroid_error(
-    
-centroids = centroids(peaks, pixel_arr, intensity_arr, peak_width = 10)
 
+		numerator = []
+		for i in range(len(x_arr)):
+		    numerator.append(y_arr[i]*(x_arr[i]-centroid)**2)
+		error = np.sqrt( np.sum(numerator) / (np.sum(y_range))**2 )
+		centroids.append([centroid, error])
+	centroids, centroid_errors = np.transpose(centroids)[0], np.transpose(centroids)[1]
+	return centroids, centroid_errors
+    
+centroids, centroid_errors = centroids(peaks, pixel_arr, intensity_arr, peak_width = 10)
+print centroid_errors
 def spectra_fig(name):
     fig = plt.figure()
     plt.plot(pixel_arr, intensity_arr, linewidth =.75)
@@ -178,6 +185,10 @@ def idealfigs():
     #plt.plot(neonspec, ideal_4,'--',label='4 best fit')
     plt.title('Least Squares Fitting for: ' + name.upper(), fontsize =20);    
     plt.xlabel('Pixels',fontsize=20);    plt.ylabel('Wavelength [nm]',fontsize=20)
+    print ideal_quad[5:9]
+    for i in range(len(centroids)):
+        y, x0,x1 = ideal_quad[i], centroids[i]-centroid_errors[i]/2., centroids[i]+centroid_errors[i]/2.
+        plt.plot((x0, x1), (y, y),c='k',ls ='-', linewidth =1)
     plt.xlim([np.amin(centroids), np.amax(centroids)])
     plt.legend(numpoints=1, loc = 4, fontsize = 18)
     plt.tick_params(labelsize=16)
@@ -200,7 +211,7 @@ def risiduals():
     plt.legend()
     return fig
     
-plt.show(risiduals())
+#plt.show(risiduals())
 #risiduals().savefig(figure_path + name + "_risiduals.png",dpi=300)
 
 

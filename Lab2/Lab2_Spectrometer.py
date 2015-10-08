@@ -94,6 +94,31 @@ def fig_10(folder, dark_folder, index):
 #n_freq = .5 * sampling_rate
 #print np.float((np.amax(pixel_arr)-np.amin(pixel_arr)))/(len(pixel_arr)-1)
 
+        
+def my_std(arr):
+   """Calculates the STD of the arr and returns mu (the mean)"""
+   mu = my_mean(arr)
+   sq_sum = np.sum([(elem-mu)**2 for elem in arr]) #sums (x_i-mu)^2
+   return mu, np.sqrt(sq_sum/(len(arr)-1))  
+def linleastsquares(data, poly):
+    """
+    data: [x,y] what you are trying to fit
+    poly: the number of terms you want i.e. poly = 3 --> ax**2 + bx + c
+    """
+    sum_x_arr = [np.sum(data[0]**i) for i in np.arange(1,(poly-1)*2+1)]
+    sum_xy_arr = [np.sum(data[0]**i * data[1]) for i in np.arange(0, poly)]
+    
+    left = [[None for i in range(poly)] for j in range(poly)]
+    right = [[i] for i in sum_xy_arr]
+    for i in range(poly):
+        for j in range(poly):
+            if i == 0 and j == 0:
+                left[i][j] = len(data[0])
+            else:
+                left[i][j] = sum_x_arr[i+j-1]
+    inv_left = np.linalg.inv(left)
+    final = np.dot(inv_left,right)
+    return final
 def fig_12(folder, dark_folder):
     intensity_arr = np.array([])
     dark_arr = np.array([])
@@ -101,41 +126,55 @@ def fig_12(folder, dark_folder):
     files1 = os.listdir(dark_folder)
     mean_arr = np.array([])
     
-    filenum =10 
-    indexnum = 20
-    intensity_all = np.zeros(shape=(filenum,indexnum))
+    filenum =1000 #1000 files
+    indexnum = 2048 #2048 pixels
+    intensity_arr = np.zeros(shape=(filenum,indexnum))
     for index, fil in enumerate(files[:filenum]):
-        print fil
         if fil == ".DS_Store":
             continue
         data = np.transpose(np.genfromtxt(folder+fil,skip_header=17, skip_footer=1))
-        print data[1]
-        intensity_all[index] = data[1][:indexnum]
-    print intensity_all
-    intensity_all = np.transpose(intensity_all)
-    print intensity_all
-    #print files
-    #for index in range(2048):
-    #    for fil in files:
-    #        if fil == '.DS_Store':
-    #            continue
-    #        data = np.transpose(np.genfromtxt(folder+fil,skip_header=17, skip_footer=1))
-    #        intensity_arr = np.append(intensity_arr, data[1][index])
-    #    for fil in files1:
-    #        if fil == '.DS_Store':
-    #            continue
-    #        data = np.transpose(np.genfromtxt(dark_folder+fil,skip_header=17, skip_footer=1))
-    #        dark_arr = np.append(dark_arr, data[1][index])
-    #    dark_correction = my_mean(dark_arr)
-        
-        #mean_arr = np.append(mean_arr, my_mean(intensity_arr-dark_correction))
+        intensity_arr[index] = data[1][:indexnum]
+    intensity_arr = np.transpose(intensity_arr)
+    #print intensity_arr
+    
+    dark_arr = np.zeros(shape=(filenum,indexnum))
+    for index, fil in enumerate(files1[:filenum]):
+        if fil == ".DS_Store":
+            continue
+        data = np.transpose(np.genfromtxt(dark_folder+fil,skip_header=17, skip_footer=1))
+        dark_arr[index] = data[1][:indexnum]
+    dark_arr = np.transpose(dark_arr)
+    #print dark_arr
+
+    
+    dark_corr_arr = np.array([])
+    for elem in dark_arr:
+        dark_corr_arr = np.append(dark_corr_arr, my_mean(elem))
+    #print dark_corr_arr
+   
+    mean_arr = np.array([])
+    variance_arr = np.array([])
+    for index, elem in enumerate(intensity_arr):
+        mean, std = my_std(elem - dark_corr_arr[index])
+        mean_arr, variance_arr = np.append(mean_arr, mean), np.append(variance_arr, std**2)
+    #print mean_arr
+    #print variance_arr
+    
+    linear = linleastsquares([mean_arr, variance_arr], 2)
+
+    ideal_linear = linear[1]*mean_arr+linear[0]
+    #this graph shows the correlation of how when the brightness increases, the variance increases too
     fig = plt.figure(figsize = (10,5))
-    #plt.plot(mean_arr, mean_arr,'o', linewidth =1)
-    ##plt.xlabel('Sample', fontsize =16); plt.ylabel('Signal [ADU]', fontsize =16)
-    ##plt.xlim([0,1000]) ; plt.ylim([mean - 70, mean+ 70])
-    #plt.tick_params(labelsize=14)
-    ##plt.title('Measured Signals for Index ' + str(index) + ' (Time Series)\nmean ' + str(mean), fontsize=18)
-    #plt.tight_layout()
-    #return fig
+    plt.plot(mean_arr, variance_arr, 'o', linewidth =1)
+    plt.plot(mean_arr, ideal_linear,'r-',label='gain = ' + str(linear[1]) + '\nb = ' + str(linear[0]), linewidth = 1.5)
+    plt.xlabel("Mean, " + r'$\left(\overline{ADU - ADU_0}\right)$', fontsize =16); plt.ylabel("Variance, " + r'$\sigma^2$', fontsize =16)
+    plt.tick_params(labelsize=14)
+    plt.title('Correlation between Brightness and Variance', fontsize=18)
+    plt.tight_layout()
+    plt.legend(loc = 2)
+    return fig
+    
+    
 plt.show(fig_12(folder_incan_100ms_90v, folder_incan_dark_100ms))
 
+fig_12(folder_incan_100ms_90v, folder_incan_dark_100ms).savefig("/Users/Diana/Desktop/astro temp/test.png", dpi =300)

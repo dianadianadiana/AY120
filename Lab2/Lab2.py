@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os 
+import math 
 
 #from matplotlib import rc
 #rc('font',**{'family':'serif','serif':['Computer Modern']})
@@ -25,9 +26,11 @@ data_path = "/Users/Diana/Desktop/Astro 120/Lab2/data/"
 figure_path = "/Users/Diana/Desktop/Astro 120/Lab2/Figures/"
 
 folder_greenlaser = get_folder(data_path,'greenlaser')#all the file names in this folder
+folder_redlaser = get_folder(data_path, 'redlaser')
 folder_neon = get_folder(data_path,'neon')
 folder_incan = get_folder(data_path,'incan')
 folder_mercury = get_folder(data_path, 'mercury')
+folder_sun = get_folder(data_path, 'sun')
 
 def average_intensity(folder):
     files = os.listdir(folder)
@@ -118,28 +121,45 @@ peaks_mercury = np.delete(peaks_mercury,[3,4,7,8,11,14, 15,16,17, 18,19]) #delet
 def centroids(index_arr, x_arr, y_arr, peak_width):
         n = peak_width/2
 	centroids= []
-	print n
 	for peak_index in index_arr:
 		x_range = x_arr[peak_index-n:peak_index+n]
 		y_range = y_arr[peak_index-n:peak_index+n]
 		centroid = np.sum(x_range*y_range)/np.sum(y_range) #<x>
-
-		#numerator = []
-		#for i in range(len(x_range)):
-		#    numerator.append(y_arr[i]*(x_arr[i]-centroid)**2)
-		#error = np.sqrt( np.sum(numerator) / (np.sum(y_range))**2 )
-		#centroids.append([centroid, error])
-		centroids.append(centroid)
-	#centroids, centroid_errors = np.transpose(centroids)[0], np.transpose(centroids)[1]
-	#return centroids, centroid_errors
-	return centroids
+                #error = (np.sum(y_range)-np.sum(x_range*y_range))/(np.sum(y_range))**2
+		numerator = []
+		for i in x_range:
+		    numerator.append(y_arr[i]*(x_arr[i]-centroid)**2)
+		error = np.sqrt( np.sum(numerator) / (np.sum(y_range))**2 )
+		centroids.append([centroid, error])
+		print error
+		#centroids.append(centroid)
+	centroids, centroid_errors = np.transpose(centroids)[0], np.transpose(centroids)[1]
+	return centroids, centroid_errors
+	#return centroids
     
-centroids_neon = centroids(peaks_neon, pixel_arr, intensity_neon, peak_width = 10)
-centroids_mercury= centroids(peaks_mercury, pixel_arr, intensity_mercury, peak_width = 10)
+centroids_neon, errors_neon  = centroids(peaks_neon, pixel_arr, intensity_neon, peak_width = 10)
+centroids_mercury,errors_mercury = centroids(peaks_mercury, pixel_arr, intensity_mercury, peak_width = 10)
 dark_correction_neon = my_mean(intensity_neon[:1100]) -50
 dark_correction_mercury = my_mean(intensity_mercury[:200])-50
 intensity_neon -= dark_correction_neon
 intensity_mercury -= dark_correction_mercury
+
+print centroids_neon
+#green laser and red laser
+intensity_greenlaser = average_intensity(folder_greenlaser)
+intensity_redlaser = average_intensity(folder_redlaser)
+peaks_greenlaser = peaks(intensity_greenlaser, n = 10, lower_limit = 200, max = True)
+peaks_redlaser = peaks(intensity_redlaser, n = 10, lower_limit = 200, max = True)
+centroids_greenlaser  = centroids([1040], pixel_arr, intensity_greenlaser, peak_width = 10)
+centroids_redlaser = centroids([1814], pixel_arr, intensity_redlaser, peak_width = 10)
+
+def centroid_errors(peaks, centroids):
+    return [(peaks[i] - centroids[i])**2 for i in range(len(peaks))]
+
+#errors_neon = centroid_errors(peaks_neon, centroids_neon)
+#errors_mercury = centroid_errors(peaks_mercury, centroids_mercury)
+#print errors_neon
+#print errors_mercury
 def spectra_fig(name):
     fig = plt.figure()
     plt.plot(pixel_arr, intensity_arr, linewidth =.75)
@@ -188,7 +208,8 @@ mercuryspec = mercuryspec[:9]
 spec = np.array([585.249,588.189,594.483,597.553,603.0,607.434,609.616,
 614.306,616.359,621.72,626.649,630.479,633.443,638.299,640.225,650.653,653.288,659.895,667.828,671.704,
 405.4,436.6,487.7,542.4,546.5,577.7,580.2,584.0,587.6])#,593.4,599.7,611.6])
-centroids = centroids_neon+ centroids_mercury
+#centroids = centroids_neon+ centroids_mercury
+centroids = np.append(centroids_neon, centroids_mercury)
 spec = sorted(spec)
 centroids= sorted(centroids)
 
@@ -230,9 +251,9 @@ def idealfigs():
     plt.plot(centroids, ideal_quad,'k--',label='quadratic best fit')
     plt.title('Least Squares Fitting', fontsize =20);    
     plt.xlabel('Pixels',fontsize=20);    plt.ylabel('Wavelength [nm]',fontsize=20)
-    #for i in range(len(centroids)):
-    #    y, x0,x1 = ideal_quad[i], centroids[i]-centroid_errors[i]/2., centroids[i]+centroid_errors[i]/2.
-    #    plt.plot((x0, x1), (y, y),c='k',ls ='-', linewidth =1)
+    #for i in range(len(centroids_neon)):
+    #    y, x0,x1 = ideal_quad[i], centroids_neon[i]-errors_neon[i]/2., centroids_neon[i]+errors_neon[i]/2.
+    #    plt.plot((x0, x1), (y, y),c='k',ls ='-', linewidth =50)
     plt.xlim([np.amin(centroids), np.amax(centroids)])
     plt.legend(numpoints=1, loc = 4, fontsize = 18)
     plt.tick_params(labelsize=16)
@@ -261,3 +282,72 @@ def risiduals():
 #risiduals().savefig(figure_path + "residuals.png",dpi=300)
 
 
+wavelength_arr = quad[2]*pixel_arr*pixel_arr + quad[1]*pixel_arr + quad[0]
+wave_green = wavelength_arr[peaks_greenlaser][0]
+wave_red = wavelength_arr[peaks_redlaser][0]
+wave_green_exp = 532
+wave_red_exp = 650
+wave_green_error = np.abs(wave_green - wave_green_exp)/wave_green_exp * 100
+wave_red_error = np.abs(wave_red - wave_red_exp)/wave_red_exp * 100
+#dark correction
+dark_correction_greenlaser = my_mean(intensity_greenlaser[:1000])
+dark_correction_redlaser = my_mean(intensity_redlaser[:1000])
+intensity_greenlaser -= dark_correction_greenlaser
+intensity_redlaser -= dark_correction_redlaser
+
+def spectra_green_red():
+    fig = plt.figure(figsize = (12,5))
+    ax = fig.add_subplot(111)
+    #ax1 = fig.add_subplot(122)
+    
+    ax.plot(wavelength_arr, intensity_greenlaser, 'g',linewidth =.75,label='Peak '+r'$\lambda$' + ' (nm): ' + "{:.3f}".format((wave_green))+
+    '; Real ' + r'$\lambda$' + ' (nm): ' + str(wave_green_exp) + '; Error: ' + "{:.3f}".format((wave_green_error)) + '%')
+    ax.plot(wavelength_arr, intensity_redlaser,'r', linewidth =.75,label='Peak '+r'$\lambda$' + ' (nm): ' + "{:.3f}".format(wave_red) +  
+    '; Real ' + r'$\lambda$' + ' (nm): ' + str(wave_red_exp) + '; Error: ' + "{:.3f}".format(wave_red_error) + '%')
+    ax.set_ylabel('Intensity [ADU]', fontsize = 16)
+    ax.set_title('Spectra of Green Laser and Red Laser', fontsize = 18)
+    #ax1.set_title('Spectrum of Red Laser', fontsize = 18)
+    #ax.axvline(x=wave_green, c='k',ls ='--', linewidth =.75,label='Peak '+r'$\lambda$' + ' (nm): ' + str(wave_green))
+    #ax1.axvline(x=wave_red, c='k',ls ='--', linewidth =.75,label='Peak '+r'$\lambda$' + ' (nm): ' + str(wave_red))
+    for ax in [ax]:
+        ax.set_xlim([350,685])
+        ax.legend(loc=9, fontsize =15)
+        ax.set_ylim(bottom=0)
+        ax.set_xlabel('Wavelength [nm]', fontsize = 16)
+    return fig
+#plt.show(spectra_green_red())
+#spectra_green_red().savefig(figure_path + 'spectra_green_red.png',dpi = 300)
+
+intensity_solar = average_intensity(folder_sun)
+pi = np.pi
+h = 6.626e-34
+c = 3.0e+8
+k = 1.38e-23
+
+def planck(wav, T):
+    a = 2.0*h*c**2
+    b = h*c/(wav*k*T)
+    intensity = a/ ( (wav**5) * (np.exp(b) - 1.0) )
+    return intensity
+wavelengths = np.arange(1e-9, 3e-6, 1e-9) 
+def spectra_solar():
+    fig = plt.figure(figsize = (12,5))
+
+    ax = fig.add_subplot(111)
+    #ax1 = fig.add_subplot(122)
+    
+    ax.plot(wavelength_arr, intensity_solar*1.5e10, 'k',linewidth =.75)
+    ax.plot(wavelengths*1e9, planck(wavelengths, 5800))
+    ax.set_ylabel('Intensity [ADU]', fontsize = 16)
+    ax.set_title('Spectra of the Sun', fontsize = 18)
+    #ax1.set_title('Spectrum of Red Laser', fontsize = 18)
+    #ax.axvline(x=wave_green, c='k',ls ='--', linewidth =.75,label='Peak '+r'$\lambda$' + ' (nm): ' + str(wave_green))
+    #ax1.axvline(x=wave_red, c='k',ls ='--', linewidth =.75,label='Peak '+r'$\lambda$' + ' (nm): ' + str(wave_red))
+    for ax in [ax]:
+        #ax.set_xlim([350,700])
+        ax.legend(loc=9, fontsize =15)
+        ax.set_ylim(bottom=0)
+        ax.set_xlabel('Wavelength [nm]', fontsize = 16)
+    return fig
+plt.show(spectra_solar())
+spectra_solar().savefig(figure_path + 'solar_spectra.png', dpi=300)

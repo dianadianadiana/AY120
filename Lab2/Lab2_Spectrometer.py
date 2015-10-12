@@ -55,7 +55,7 @@ def fig_9():
     plt.tight_layout()
     return fig
     
-plt.show(fig_9())
+#plt.show(fig_9())
 #fig_9().savefig(figure_path + "incan_80v85v90v_fig9.png",dpi=300)
 
 def get_intensity_index(folder, index):
@@ -117,7 +117,7 @@ def fig_10_two(folder, dark_folder,index, index1):
     #plt.tight_layout()
     return fig
     
-plt.show(fig_10_two(folder_incan_100ms_90v, folder_incan_dark_100ms,500,1000))
+#plt.show(fig_10_two(folder_incan_100ms_90v, folder_incan_dark_100ms,500,1000))
 #fig_10_two(folder_incan_100ms_90v, folder_incan_dark_100ms,500,1000).savefig(figure_path + "fig10_incan_1000_100ms_90v_500vs1000.png",dpi=300)
 
 #plt.show(fig_10(folder_incan_50ms_90v, folder_incan_dark_50ms, 1000))
@@ -209,4 +209,5 @@ def fig_12(folder, dark_folder):
       
 #plt.show(fig_12(folder_incan_100ms_90v, folder_incan_dark_100ms))
 #fig_12(folder_incan_100ms_90v, folder_incan_dark_100ms).savefig(figure_path + "fig12_100ms_90v_log.png", dpi =300)
+fig_12(folder_incan_100ms_80v, folder_incan_dark_100ms).savefig(figure_path + "fig12_100ms_80v.png", dpi =300)
 

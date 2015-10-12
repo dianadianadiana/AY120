@@ -180,8 +180,8 @@ def spectra_neon_mercury():
     ax = fig.add_subplot(121)
     ax1 = fig.add_subplot(122)
     
-    ax.plot(pixel_arr, intensity_neon, 'k',linewidth =.75, label='Number of Peaks: ' + str(len(centroids_neon)))
-    ax1.plot(pixel_arr, intensity_mercury,'k', linewidth =.75, label='Number of Peaks: ' + str(len(centroids_mercury)))
+    ax.plot(pixel_arr, intensity_neon, 'k',linewidth =1, label='Number of Peaks: ' + str(len(centroids_neon)))
+    ax1.plot(pixel_arr, intensity_mercury,'k', linewidth =1, label='Number of Peaks: ' + str(len(centroids_mercury)))
     ax.set_ylabel('Intensity [ADU]', fontsize = 16)
     ax.set_title('Spectra of Neon (Ne I)', fontsize = 18)
     ax1.set_title('Spectra of Mercury (Hg I)', fontsize = 18)
@@ -306,9 +306,6 @@ def spectra_green_red():
     '; Real ' + r'$\lambda$' + ' (nm): ' + str(wave_red_exp) + '; Error: ' + "{:.3f}".format(wave_red_error) + '%')
     ax.set_ylabel('Intensity [ADU]', fontsize = 16)
     ax.set_title('Spectra of Green Laser and Red Laser', fontsize = 18)
-    #ax1.set_title('Spectrum of Red Laser', fontsize = 18)
-    #ax.axvline(x=wave_green, c='k',ls ='--', linewidth =.75,label='Peak '+r'$\lambda$' + ' (nm): ' + str(wave_green))
-    #ax1.axvline(x=wave_red, c='k',ls ='--', linewidth =.75,label='Peak '+r'$\lambda$' + ' (nm): ' + str(wave_red))
     for ax in [ax]:
         ax.set_xlim([350,685])
         ax.legend(loc=9, fontsize =15)
@@ -332,22 +329,49 @@ def planck(wav, T):
 wavelengths = np.arange(1e-9, 3e-6, 1e-9) 
 def spectra_solar():
     fig = plt.figure(figsize = (12,5))
-
-    ax = fig.add_subplot(111)
-    #ax1 = fig.add_subplot(122)
-    
-    ax.plot(wavelength_arr, intensity_solar*1.5e10, 'k',linewidth =.75)
-    ax.plot(wavelengths*1e9, planck(wavelengths, 5800))
+    ax = fig.add_subplot(111)    
+    ax.plot(wavelength_arr, intensity_solar, 'k',linewidth =.75)
+    #ax.plot(wavelengths*1e9, planck(wavelengths, 5800))
     ax.set_ylabel('Intensity [ADU]', fontsize = 16)
-    ax.set_title('Spectra of the Sun', fontsize = 18)
-    #ax1.set_title('Spectrum of Red Laser', fontsize = 18)
-    #ax.axvline(x=wave_green, c='k',ls ='--', linewidth =.75,label='Peak '+r'$\lambda$' + ' (nm): ' + str(wave_green))
-    #ax1.axvline(x=wave_red, c='k',ls ='--', linewidth =.75,label='Peak '+r'$\lambda$' + ' (nm): ' + str(wave_red))
+    ax.set_title('Spectrum of the Sun', fontsize = 18)
+    
+    ax.annotate('H Beta', xy=(487,1435), xytext=(487,1435-450),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('CH Molecule', xy=(431.25,720), xytext=(431.25,720 - 450),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('Neutral Iron', xy=(527.6,1565), xytext=(527.6,1565-450),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('Ca+', xy=(394,212), xytext=(394,750),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('Ca+', xy=(397.4,266), xytext=(397.4,65),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+
     for ax in [ax]:
-        #ax.set_xlim([350,700])
+        ax.set_xlim([350,700])
         ax.legend(loc=9, fontsize =15)
         ax.set_ylim(bottom=0)
         ax.set_xlabel('Wavelength [nm]', fontsize = 16)
     return fig
-plt.show(spectra_solar())
-spectra_solar().savefig(figure_path + 'solar_spectra.png', dpi=300)
+#plt.show(spectra_solar())
+#spectra_solar().savefig(figure_path + 'solar_spectra1.png', dpi=300)
+
+def spectra_wave_neon_mercury():
+    fig = plt.figure(figsize = (12,5))
+    ax = fig.add_subplot(121)
+    ax1 = fig.add_subplot(122)
+    plt.suptitle('Spectra after Calibration', fontsize = 18)
+    ax.plot(wavelength_arr, intensity_neon, 'k',linewidth =1)#, label='Number of Peaks: ' + str(len(centroids_neon)))
+    ax1.plot(wavelength_arr, intensity_mercury,'k', linewidth =1)#, label='Number of Peaks: ' + str(len(centroids_mercury)))
+    ax.set_ylabel('Intensity [ADU]', fontsize = 16)
+    ax.set_title('Neon (Ne I)', fontsize = 18)
+    ax1.set_title('Mercury (Hg I)', fontsize = 18)
+    #for centroid in centroids_neon:
+    #    ax.axvline(x=centroid, c='k',ls ='--', linewidth =.75)
+    #for centroid in centroids_mercury:
+    #    ax1.axvline(x=centroid, c='k',ls ='--', linewidth =.75)
+    ax.set_xlim([550,680])
+    ax1.set_xlim([350,680])
+    for ax in [ax,ax1]:
+        
+        ax.legend(loc=9, fontsize =13)
+        ax.set_ylim(bottom=0)
+        ax.set_xlabel('Wavelength [nm]', fontsize = 16)
+    fig.subplots_adjust(top=.85)
+    return fig
+#plt.show(spectra_wave_neon_mercury())
+#spectra_wave_neon_mercury().savefig(figure_path + 'spectra_wave_neon_mercury.png',dpi = 300)

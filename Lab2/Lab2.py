@@ -127,8 +127,10 @@ def centroids(index_arr, x_arr, y_arr, peak_width):
 		centroid = np.sum(x_range*y_range)/np.sum(y_range) #<x>
                 #error = (np.sum(y_range)-np.sum(x_range*y_range))/(np.sum(y_range))**2
 		numerator = []
-		for i in x_range:
-		    numerator.append(y_arr[i]*(x_arr[i]-centroid)**2)
+		#for i in x_range:
+		#    numerator.append(y_arr[i]*(x_arr[i]-centroid)**2)
+		for i in range(len(x_range)):
+		    numerator.append(y_range[i]*(x_range[i]-centroid)**2)
 		error = np.sqrt( np.sum(numerator) / (np.sum(y_range))**2 )
 		centroids.append([centroid, error])
 		print error

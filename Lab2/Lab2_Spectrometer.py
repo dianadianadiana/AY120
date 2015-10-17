@@ -205,9 +205,11 @@ def fig_12(folder, dark_folder):
     #plt.yscale('log')
     plt.tight_layout()
     plt.legend(loc = 2, fontsize=16)
+    plt.xscale('log')
+    plt.yscale('log')
     return fig
       
-#plt.show(fig_12(folder_incan_100ms_90v, folder_incan_dark_100ms))
+plt.show(fig_12(folder_incan_100ms_90v, folder_incan_dark_100ms))
 #fig_12(folder_incan_100ms_90v, folder_incan_dark_100ms).savefig(figure_path + "fig12_100ms_90v_log.png", dpi =300)
-fig_12(folder_incan_100ms_80v, folder_incan_dark_100ms).savefig(figure_path + "fig12_100ms_80v.png", dpi =300)
+#fig_12(folder_incan_100ms_80v, folder_incan_dark_100ms).savefig(figure_path + "fig12_100ms_80v.png", dpi =300)
 

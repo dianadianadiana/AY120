@@ -125,13 +125,11 @@ def centroids(index_arr, x_arr, y_arr, peak_width):
 		x_range = x_arr[peak_index-n:peak_index+n]
 		y_range = y_arr[peak_index-n:peak_index+n]
 		centroid = np.sum(x_range*y_range)/np.sum(y_range) #<x>
-                #error = (np.sum(y_range)-np.sum(x_range*y_range))/(np.sum(y_range))**2
+
 		numerator = []
-		#for i in x_range:
-		#    numerator.append(y_arr[i]*(x_arr[i]-centroid)**2)
-		for i in range(len(x_range)):
-		    numerator.append(y_range[i]*(x_range[i]-centroid)**2)
-		error = np.sqrt( np.sum(numerator) / (np.sum(y_range))**2 )
+		for i in x_range:
+		    numerator.append(y_arr[i]*(x_arr[i]-centroid)**2)
+		error = np.sum(numerator) / (np.sum(y_range))**2 
 		centroids.append([centroid, error])
 		print error
 		#centroids.append(centroid)
@@ -335,13 +333,20 @@ def spectra_solar():
     ax.plot(wavelength_arr, intensity_solar, 'k',linewidth =.75)
     #ax.plot(wavelengths*1e9, planck(wavelengths, 5800))
     ax.set_ylabel('Intensity [ADU]', fontsize = 16)
-    ax.set_title('Spectrum of the Sun', fontsize = 18)
+    ax.set_title('Spectrum of the Sun (with Farunhofer Lines)', fontsize = 18)
     
-    ax.annotate('H Beta', xy=(487,1435), xytext=(487,1435-450),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('H'+r'$\beta$', xy=(487,1435), xytext=(487,1435-450),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
     ax.annotate('CH Molecule', xy=(431.25,720), xytext=(431.25,720 - 450),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
-    ax.annotate('Neutral Iron', xy=(527.6,1565), xytext=(527.6,1565-450),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('Fe', xy=(527.6,1565), xytext=(527.6,1565-450),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
     ax.annotate('Ca+', xy=(394,212), xytext=(394,750),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
     ax.annotate('Ca+', xy=(397.4,266), xytext=(397.4,65),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('Mg', xy=(519,1750), xytext=(519,1350),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('Na', xy=(590,1000), xytext=(590,600),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('O2', xy=(630,600), xytext=(630,200),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('H'+r'$\alpha$', xy=(650,350), xytext=(650,65),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('H'+r'$\gamma$', xy=(435,885), xytext=(435,400),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('Fe', xy=(467.5,1237), xytext=(467.5,800),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
+    ax.annotate('Fe', xy=(439,1060), xytext=(439,600),arrowprops=dict(width = .1, facecolor='black', shrink=0.05),)
 
     for ax in [ax]:
         ax.set_xlim([350,700])
@@ -349,8 +354,8 @@ def spectra_solar():
         ax.set_ylim(bottom=0)
         ax.set_xlabel('Wavelength [nm]', fontsize = 16)
     return fig
-#plt.show(spectra_solar())
-#spectra_solar().savefig(figure_path + 'solar_spectra1.png', dpi=300)
+plt.show(spectra_solar())
+spectra_solar().savefig(figure_path + 'solar_spectra1.png', dpi=300)
 
 def spectra_wave_neon_mercury():
     fig = plt.figure(figsize = (12,5))

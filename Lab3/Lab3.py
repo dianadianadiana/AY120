@@ -263,31 +263,42 @@ def centroids1(fil, flat_img):
     img_arr_pair = sorted(img_arr_pair, key = getKey)
     cluster_arr = []
     k=0
-    while k < (len(img_arr_pair)-2):
-        curr_pair, next_pair, next_next_pair = img_arr_pair[k], img_arr_pair[k+1], img_arr_pair[k+2]
+    while k < (len(img_arr_pair)):
+        curr_pair, next_pair = img_arr_pair[k], img_arr_pair[k+1]
         temp_arr=[curr_pair]
-        if curr_pair[0] == 541:
-            print curr_pair, next_pair
-        if not ((np.abs(curr_pair[1]-next_pair[1])<=10 and np.abs(curr_pair[0]-next_pair[0])<=10) or 
-        (np.abs(curr_pair[0]-next_next_pair[0])<=10 and np.abs(curr_pair[1]-next_next_pair[1]))<=10):
+        if not (np.abs(curr_pair[1]-next_pair[1])<=10 and np.abs(curr_pair[0]-next_pair[0])<=15) :
             k+=1
         else:
-            while (np.abs(curr_pair[1]-next_pair[1])<=10 and np.abs(curr_pair[0]-next_pair[0])<=10) or (np.abs(curr_pair[0]-next_next_pair[0])<=10 and np.abs(curr_pair[1]-next_next_pair[1])<=10):
-                if (np.abs(curr_pair[1]-next_pair[1])<=10 and np.abs(curr_pair[0]-next_pair[0])<=10):
-                    temp_arr.append(next_pair)
-                elif (np.abs(curr_pair[0]-next_next_pair[0])<=10 and np.abs(curr_pair[1]-next_next_pair[1])<=10):
-                    temp_arr.append(next_pair)
+            while np.abs(curr_pair[1]-next_pair[1])<=10 and np.abs(curr_pair[0]-next_pair[0])<=15:
+                temp_arr.append(next_pair)
                 k+=1
-                curr_pair, next_pair, next_next_pair = img_arr_pair[k], img_arr_pair[k+1], img_arr_pair[k+2]
+                curr_pair, next_pair = img_arr_pair[k], img_arr_pair[k+1]
             
         cluster_arr.append(temp_arr)
         k+=1
 
     for elem in cluster_arr:
         print elem
-    #for i in range(1,len(img_arr_tuple)-1):
+    k = 0
+    while k < len(cluster_arr):
+        if len(cluster_arr[k]) == 1:
+            cluster_arr = np.delete(cluster_arr, k)
+        else:
+            k+=1
+
+    k=0
+    while k < len(cluster_arr):
+        cluster = cluster_arr[k]
+        intensity_arr = [img[pixel[0],pixel[1]] for pixel in cluster]
+        cluster_arr[k] = cluster[np.argmax(intensity_arr)] #reassign the cluster
+        k+=1
+    
+
+    for elem in cluster_arr:
+        print elem
 
         
+    
         
   
     

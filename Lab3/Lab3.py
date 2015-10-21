@@ -173,35 +173,49 @@ plt.show(display_fits(DanaeR_file_arr[5], flatR_img))
 #============================
 # Centroids
 #============================
-def max_peaks(arr,lower_limit):
+def max_peaks(arr, width, lower_limit):
     """ Returns an array of the indexes where the indexes indicate where the peaks are"""
-    return [i for i in range(1, len(arr)-1) if arr[i-1]<arr[i] and arr[i+1]<arr[i] and arr[i]>lower_limit]
+    #return [i for i in range(1, len(arr)-1) if arr[i-1]<arr[i] and arr[i+1]<arr[i] and arr[i]>lower_limit]
+    return [i for i in range(35, len(arr)-1-32) if all(arr[i] > arr[i-width:i]) and all(arr[i]>arr[i+1:i+width]) and arr[i]>lower_limit]
 def limit_applier(index_arr, arr, lower_limit):
     """ Makes sure the considered indexes are above a certain value"""    
     return [i for i in index_arr if arr[i] > lower_limit]
-def centroids1(fil):
+def centroids1(fil, flat_img):
     info = loadfits(fil)
     img, hdr = info[0], info[1]
-    img = bsub(bias, fil)
-    avg = np.mean(img)
-    #print img[0][100:300]
+    #img = bsub(bias, fil)
+    img = correct_fits(fil, bias, flat_img)
+    avg = np.median(img)
+    lim = 2.65*avg
     #[x][y]
     img_arr = []
-    print np.where(img[0]>3*avg)[0]
-    print img[1][np.where(img[1]>3*avg)[0]]
-    print img[510][np.where(img[510]>3*avg)[0]]
-    print np.where(img[510]>3*avg)[0]
-    #print np.where(img[510][max_peaks(img[510])]>3*avg)[0]
     print "%%%%%"
     print 'avg', avg
-    print 2.5*avg
-    print max_peaks(img[510], 2.5*avg)
-    print img[510][max_peaks(img[510], 2.5*avg)]
+    print 'limit', lim
+    #print max_peaks(img[510], 2.5*avg)
+    #print img[510][max_peaks(img[510], 2.5*avg)]
     
     for i in range(len(img)):
-        print np.where(img[i]>3*avg)[0]
-        img_arr.append(np.where(img[i]>3*avg)[0])
+        print i, max_peaks(img[i], 10,lim)
+        img_arr.append(max_peaks(img[i], 10, lim))
     print '****', img_arr[0]
+    
+    #for i in range(1, len(img_arr)-1):
+    #    print i, img_arr[i]
+    #    if len(img_arr[i-1]>0) or len(img_arr[i-1]<0):
+    img_arr_tuple =[]
+    for i in range(len(img_arr)):
+        if len(img_arr)>0:
+            for elem in img_arr[i]:
+                img_arr_tuple.append([i,elem])
+    print img_arr_tuple
+    
+    cluster_arr = []
+    for i in range(1,len(img_arr_tuple)-1):
+        
+        
+        
+                
     
     #for i in range(len(img)):
     #    #print np.where(img[i][max_peaks(img[i])]>3*avg)[0]
@@ -225,7 +239,7 @@ def centroids(index_arr, x_arr, y_arr, peak_width):
 		#centroids.append(centroid)
 	centroids, centroid_errors = np.transpose(centroids)[0], np.transpose(centroids)[1]
 	return centroids, centroid_errors
-centroids1(DanaeR_file_arr[5])
+centroids1(DanaeR_file_arr[5], flatR_img)
 
 
     

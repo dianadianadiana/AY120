@@ -269,60 +269,8 @@ def max_peaks(arr, width, lower_limit):
     #return [i for i in range(1, len(arr)-1) if arr[i-1]<arr[i] and arr[i+1]<arr[i] and arr[i]>lower_limit]
     return [i for i in range(36, len(arr)-1) if all(arr[i] > arr[i-width:i]) and all(arr[i]>arr[i+1:i+width]) and arr[i]>lower_limit] # 36 is arbitrary
     #assuming that there is nothing before 36
-def limit_applier(index_arr, arr, lower_limit):
-    """ Makes sure the considered indexes are above a certain value"""    
-    return [i for i in index_arr if arr[i] > lower_limit]
-#def peak_verifier(index_arr, arr, n, max = True):
-#    """
-#    """
-#    k = 0
-#    delete_arr = []
-#    cluster_arr =[]
-#    while k < len(index_arr) - 1:
-#   
-#        curr_index_x = index_arr[k][0]
-#        curr_index_y = index_arr[k][1]
-#        next_index_x = index_arr[k+1][0]
-#        next_index_y = index_arr[k+1][1]
-#        curr_len = len(index_arr[k])
-#        next_len = len(index_arr[k+1])
-#        curr_arr = index_arr[k]
-#        next_arr = index_arr[k+1]
-#
-#        temp_arr=[]
-#        #if np.abs(curr_index_x-next_index_x) <= 3) and np.abs(curr_index_x-next_index_x) <= 3)
-#        if curr_len ==0:
-#            continue
-#        m = k+1
-#        elif curr_len > 0 and next_len > 0:
-#            for elem in curr_arr:
-#                temp_arr.append([k,elem])
-#                for m_elem in index_arr[m]:
-#                    if np.abs(m_elem - elem) <= 4:
-#                        temp.arr.append([m,m_elem])
-#                m+=1
-#                cluster_arr.appened(temp_arr)
-#
-#                while index_arr[m]
-#                np.abs(index_arr[m] - elem) <= 4
-#                temp_arr.append([m,elem])
-#                
-#        
-#        if np.abs(curr_index-next_index) <= n:
-#            curr_lower, curr_upper = curr_index - n/2., curr_index + n/2.
-#            if curr_lower < 0:
-#                curr_lower = 0
-#            if max:
-#                curr_max = np.amax(arr[curr_lower:curr_upper])
-#            else:
-#                curr_min = np.amin(arr[curr_lower:curr_upper])
-#            if (max and arr[curr_index] == curr_max) or (not max and arr[curr_index] == curr_min):
-#                delete_arr.append(k+1)
-#            else:
-#                delete_arr.append(k)  
-#        k+=1
-#    return np.delete(index_arr, delete_arr)
-def centroids1(fil, bias):
+
+def peaks(fil, bias):
     info = loadfits(fil)
     img, hdr = info[0], info[1]
     img = correct_fits(fil, bias)
@@ -330,37 +278,14 @@ def centroids1(fil, bias):
     lim = 2.2*avg
     #[x][y]
     img_arr = [[]] #ignore the 0th row as not having anything
-    print "%%%%%"
-    print 'avg', avg
-    print 'limit', lim
-    #print max_peaks(img[510], 2.5*avg)
-    #print img[510][max_peaks(img[510], 2.5*avg)]
-    new_arr =[]
+    # find the initial pixel values that are above the limit (=constant*avg)
+    # img_arr has the following syntax:
+    # the index of img_arr corresponds to the x value of the pixel
+    # img_arr[782] represents the 782th row of the array
+    # when img_arr[782] = [653, 897], that means that pixels [782,653] and [782,897] are above the limit
     for i_row in range(1, len(img)): #range starts at 1 bc of the assumption that img[0] has nothing
-        print i_row, max_peaks(img[i_row], 10, lim)
         img_arr.append(max_peaks(img[i_row], 10, lim))
-        for elem in max_peaks(img[i_row], 10, lim):
-            new_arr.append([i_row,elem])
-    print '****', img_arr
-    print new_arr
-    def clean_up(img_arr):
-        k=1
-        while k < len(img_arr)-1:
-            #prev_pair, curr_pair, next_pair = img_arr[k-1], img_arr[k], img_arr[k+1]
-            prev, curr, next = img_arr[k-1], img_arr[k], img_arr[k+1]
-            if len(prev) == 0 and len(next) == 0 and len(curr) > 0:
-                img_arr[k] = []
-            elif len(next) == 1 and len(curr) == 1 and np.abs(curr[0]-next[0]) >=15:
-                img_arr[k]=[]
-            elif (len(prev) == 1 or len(prev)==0) and (len(next) == 1 or len(next)==0) and len(curr) > 1:
-                number = prev[0] if len(prev)==1 else next[0]
-                k = 0
-                while k < len(curr):
-                    if np.abs(curr[k]-number)>=15: curr.remove(curr[k])
-                    else: k+=1
-            k+=1
-        return img_arr
-    #img_arr = clean_up(img_arr)
+
     
 
     def cluster(img_arr):
@@ -379,19 +304,16 @@ def centroids1(fil, bias):
                 cluster_arr.append(temp_arr)
             k+=1
         return cluster_arr
-        
+    # clusters is an array where it takes in img_arr and sees something like this
+    # 289 []; 290 [654, 786]; 291 [656]; 292 [] 
+    # and groups it like so [ [290, 654], [290,786], [291,656] ] -- this is one cluster
+    # clusters is an array of multiple 'cluster' like above
     clusters = cluster(img_arr)
-    for index, elem in enumerate(img_arr):
-        print index, elem
-    for cluster in clusters:
-        print cluster
     
     def go_thru_clusters(clusters):
-        print 'hi'
         new_cluster_arr =[]
-
         for cluster in clusters:
-            print '*** orig cluster', cluster
+            #print '*** orig cluster', cluster
             def group(cluster):
                 temp_arr = [cluster[0]]
                 cluster.remove(cluster[0])
@@ -402,12 +324,10 @@ def centroids1(fil, bias):
                         cluster.remove(cluster[curr_i])
                         #print "TEMP", temp_arr
                         #print "CLUST", cluster
-    
                         curr_i=0
-    
                     else:
                         curr_i+=1
-                        print curr_i
+                        #print curr_i
                     if len(cluster) <= curr_i:
                         break
                 #print '**temp ', temp_arr
@@ -416,81 +336,30 @@ def centroids1(fil, bias):
             while cluster:
                 group(cluster)
         return new_cluster_arr  
-            
-        #if not (np.abs(curr_pair[1]-next_pair[1])<=10 and np.abs(curr_pair[0]-next_pair[0])<=15) :
-#            k+=1
-#        else:
-#            while np.abs(curr_pair[1]-next_pair[1])<=10 and np.abs(curr_pair[0]-next_pair[0])<=15:
-#                temp_arr.append(next_pair)
-#                k+=1
-#                curr_pair, next_pair = img_arr_pair[k], img_arr_pair[k+1]
-#            
+    
+    # new cluster arr just groups the clusters way better and applies certain restrictions
     new_cluster_arr = go_thru_clusters(clusters)
-
-    # === get rid of the clusters that are length one
+    
+    # === get rid of the clusters that are length one because those are just systematic errors
+    # that were picked up
     delete_arr=[]
     for index, elem in enumerate(new_cluster_arr):
         if len(elem) == 1:
             delete_arr.append(index)
     new_cluster_arr = np.delete(new_cluster_arr, delete_arr)
-    for elem in new_cluster_arr:
-        print len(elem), elem
-    print len(new_cluster_arr)
+
+    peaks = [] # each element of peaks has the syntax of [[x,y],size]
+    for cluster in new_cluster_arr:
+        intensity_arr = [img[coords[0]][coords[1]] for coords in cluster]
+        max_index = np.argmax(intensity_arr)
+        peaks.append([cluster[max_index], len(cluster)])
+    
+    for winner in peaks:
+        print winner
+    return peaks
 
 
-    #for i_col in range(1, len(img)):
-    #    print i_col, max_peaks(img[:,i_col], 10, lim)
-    
-    #for i in range(1, len(img_arr)-1):
-    #    print i, img_arr[i]
-    #    if len(img_arr[i-1]>0) or len(img_arr[i-1]<0):
-    img_arr_pair =[]
-    for i_row in range(len(img_arr)):
-        if len(img_arr)>0:
-            for elem in img_arr[i_row]:
-                img_arr_pair.append([i_row,elem]) # [x_index, y_index]
-    #print img_arr_pair # [ [x_1,y_1], [x_2,y_2] ... [x_n,y_n] ]
-    
-    
-    
-#    def getKey(item):
-#        return item[1]
-#    img_arr_pair = sorted(img_arr_pair, key = getKey)
-#    cluster_arr = []
-#    k=0
-#    while k < (len(img_arr_pair)):
-#        curr_pair, next_pair = img_arr_pair[k], img_arr_pair[k+1]
-#        temp_arr=[curr_pair]
-#        if not (np.abs(curr_pair[1]-next_pair[1])<=10 and np.abs(curr_pair[0]-next_pair[0])<=15) :
-#            k+=1
-#        else:
-#            while np.abs(curr_pair[1]-next_pair[1])<=10 and np.abs(curr_pair[0]-next_pair[0])<=15:
-#                temp_arr.append(next_pair)
-#                k+=1
-#                curr_pair, next_pair = img_arr_pair[k], img_arr_pair[k+1]
-#            
-#        cluster_arr.append(temp_arr)
-#        k+=1
-#
-#    for elem in cluster_arr:
-#        print elem
-#    k = 0
-#    while k < len(cluster_arr):
-#        if len(cluster_arr[k]) == 1:
-#            cluster_arr = np.delete(cluster_arr, k)
-#        else:
-#            k+=1
-#
-#    k=0
-#    while k < len(cluster_arr):
-#        cluster = cluster_arr[k]
-#        intensity_arr = [img[pixel[0],pixel[1]] for pixel in cluster]
-#        cluster_arr[k] = cluster[np.argmax(intensity_arr)] #reassign the cluster
-#        k+=1
-#    
-#
-#    for elem in cluster_arr:
-#        print elem
+
 
         
     
@@ -519,9 +388,68 @@ def centroids1(fil, bias):
 #		#centroids.append(centroid)
 #	centroids, centroid_errors = np.transpose(centroids)[0], np.transpose(centroids)[1]
 #	return centroids, centroid_errors
-centroids1(DanaeR_file_arr[5], bias)
 
+def centroid(fil, peaks):
+    """ peaks has the form of [[x,y],size] 
+    deciding to take into account +- size for centroiding"""
+    centroids =[]
+    img, hdr = loadfits(fil)
+    img = correct_fits(fil, bias)
+    for pair, size in peaks:
+        x = range(pair[0]-size, pair[0]+size+1) # just the x values
+        y =range(pair[1]-size, pair[1]+size+1) # just the y values
+        x_range = [[x, pair[1]] for x in x] # y is constant val, x is changing
+	y_range = [[pair[0], y] for y in y] # x is constant val, y is changing
+	x_range_img = [img[i[0],i[1]] for i in x_range] # vals of img at constant y, varying x
+	y_range_img = [img[i[0],i[1]] for i in y_range] # vals of img at constant x, varying y
+	print pair
+	print x
+	print y
+
+	x_centroid =  np.sum(x*x_range_img)/np.sum(x_range_img) #<x>
+	y_centroid =  np.sum(y*y_range_img)/np.sum(y_range_img) #<y>
+	
+	centroids.append([x_centroid, y_centroid])
+    centroids = np.transpose(centroids)
+    centroids_x, centroids_y = centroids[0], centroids[1]
+    return centroids_x, centroids_y
     
+    
+peaks = peaks(DanaeR_file_arr[5], bias)
+print peaks
+
+peaks1 = np.transpose(peaks)
+print 'peaks1', peaks1
+peaks2 = np.transpose(peaks1[0])
+print 'peaks2', peaks2
+print peaks2[0]
+peak_x,peak_y=[],[]
+for peak in peaks2:
+    peak_x.append(peak[0])
+    peak_y.append(peak[1])
+print peak_x
+print peak_y
+
+centroids_x, centroids_y = centroid(DanaeR_file_arr[5],peaks)
+#print centroids
+#plt.scatter(centroids_x,centroids_y,marker='x',s=50)
+plt.show()
+def display_fits_w_centroids(fil, bias, centroids_x, centroids_y):
+    """Display fits using matplotlib"""    
+    img, hdr = loadfits(fil)
+    img = correct_fits(fil, bias)
+    #img = img/np.mean(img)
+    fig = plt.figure()
+    plt.title(hdr['object'], fontsize=18)
+    plt.scatter(centroids_x,centroids_y,marker='x',s=50)
+    plt.imshow(img, origin='lower', interpolation='nearest', cmap='gray_r', 
+               vmin=0.95*np.median(img), vmax=1.7*np.median(img))
+    plt.colorbar()
+    return fig   
+
+plt.show(display_fits_w_centroids(DanaeR_file_arr[5], bias, centroids_y, centroids_x))
+	#plt.imshow(image,cmap='gray_r',vmin=50,vmax=500)
+	
 
 
     

@@ -96,7 +96,7 @@ def dead_pixels(img):
     avg = np.median(img[:,:1024])    
     img[:,255]=avg; img[:,256]=avg; img[:,1002]=avg # dead pixels -- set to avg
     img[:,1023]=avg; img[:,1024]=avg; img[:,1022]=avg 
-    img[:,783]=avg; img[:,669]=avg
+    img[:,783]=avg; img[:,784]=avg; img[:,669]=avg
     return img
     
 def loadfits(fil):
@@ -212,37 +212,46 @@ display_info(WratR_file_arr[3])
 def correct_fits(fil, bias,):
     img, hdr = loadfits(fil) # img is corrected for deadpixels and [1024,1024]
     return (img - bias) * get_gain(hdr)
+def normalize_img(img):
+    return img / np.median(img)
+    
 def display_fits(fil, bias):
     """Display fits using matplotlib"""    
     img, hdr = loadfits(fil)
     img = correct_fits(fil, bias)
+    img = img/np.mean(img)
     fig = plt.figure()
     plt.title(hdr['object'], fontsize=18)
     plt.imshow(img, origin='lower', interpolation='nearest', cmap='gray_r', 
                vmin=0.95*np.median(img), vmax=1.7*np.median(img))
     plt.colorbar()
     return fig
+def display_fits2(fil, bias):
+    """Display fits using matplotlib"""    
+    img, hdr = loadfits(fil)
+    img_c = correct_fits(fil, bias)
+    img = img/np.mean(img)
+    img_c = img_c/np.mean(img_c)
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(121)
+    cax = ax.imshow(img,cmap='gray_r',vmin=0.8,vmax=1.2)
+    fig.colorbar(cax)
+    ax1 = fig.add_subplot(122)
+    cax1 = ax1.imshow(img_c,cmap='gray_r',vmin=.8,vmax=1.2)
+    fig.colorbar(cax1)
+    #plt.show()
+    return fig
 
-plt.show(display_fits(DanaeR_file_arr[5], bias))
+#plt.show(display_fits(DanaeR_file_arr[5], bias))
+#plt.show(display_fits2(DanaeR_file_arr[5], bias))
 #display_fits(DanaeR_file_arr[5], flatR_img).savefig(fig_path+'DanaeR_5_corrected.png',dpi=300)
 #==================================
 #==================================
 
 
-#RANDOM -- from the lab handout
-#xb = bsub(bias, DanaeR_file_arr[5])
-#print np.mean(xb)
-#flatb = bsub(bias,flatR_file_arr[0])
-#flatb = flatb/np.median(flatb)
-#
-#fig = plt.figure()
-#ax = fig.add_subplot(121)
-#cax = ax.imshow(flatb,cmap='gray_r',vmin=0.8,vmax=1.2)
-#fig.colorbar(cax)
-#ax1 = fig.add_subplot(122)
-#cax1 = ax1.imshow(xb/flatb,cmap='gray_r',vmin=50,vmax=500)
-#fig.colorbar(cax1)
-##plt.show()
+
+
 
 
 
@@ -313,11 +322,10 @@ def limit_applier(index_arr, arr, lower_limit):
 #                delete_arr.append(k)  
 #        k+=1
 #    return np.delete(index_arr, delete_arr)
-def centroids1(fil, flat_img):
+def centroids1(fil, bias):
     info = loadfits(fil)
     img, hdr = info[0], info[1]
-    #img = bsub(bias, fil)
-    img = correct_fits(fil, bias, flat_img)
+    img = correct_fits(fil, bias)
     avg = np.median(img)
     lim = 2.2*avg
     #[x][y]
@@ -352,35 +360,82 @@ def centroids1(fil, flat_img):
                     else: k+=1
             k+=1
         return img_arr
-    img_arr = clean_up(img_arr)
+    #img_arr = clean_up(img_arr)
     
-    def pick_up_basic(img_arr):
+
+    def cluster(img_arr):
         cluster_arr=[]
         k=0
         while k <len(img_arr)-1:
             curr = img_arr[k]
-            if len(curr)==1:
-                j=k+1 
-                if len(img_arr[j])==1:
-                    temp_arr = [[k,curr[0]]]
-                    while len(img_arr[j])>=1:
-                        if len(img_arr[j])!=1:    temp_arr =[]
-                        else:                     temp_arr.append([j,img_arr[j][0]])
-                        j+=1
-                    k=j-1
-                print temp_arr
-                if temp_arr:
-                    cluster_arr.append(temp_arr)
-            k+=1   
-    print '*****'
-    pick_up_basic(img_arr)
+            if len(curr) >= 1:
+                temp_arr = [[k,elem] for elem in curr]
+                j=k+1
+                while len(img_arr[j]) >= 1:
+                    for elem in img_arr[j]:
+                        temp_arr.append([j,elem])
+                    j+=1
+                k=j-1
+                cluster_arr.append(temp_arr)
+            k+=1
+        return cluster_arr
         
+    clusters = cluster(img_arr)
     for index, elem in enumerate(img_arr):
         print index, elem
+    for cluster in clusters:
+        print cluster
+    
+    def go_thru_clusters(clusters):
+        print 'hi'
+        new_cluster_arr =[]
 
+        for cluster in clusters:
+            print '*** orig cluster', cluster
+            def group(cluster):
+                temp_arr = [cluster[0]]
+                cluster.remove(cluster[0])
+                curr_i = 0
+                while cluster:
+                    if np.abs(cluster[curr_i][1] - temp_arr[-1][1])<15 and np.abs(cluster[curr_i][0] - temp_arr[-1][0]) <=5:
+                        temp_arr.append(cluster[curr_i])
+                        cluster.remove(cluster[curr_i])
+                        #print "TEMP", temp_arr
+                        #print "CLUST", cluster
+    
+                        curr_i=0
+    
+                    else:
+                        curr_i+=1
+                        print curr_i
+                    if len(cluster) <= curr_i:
+                        break
+                #print '**temp ', temp_arr
+                #print '***cluster', cluster
+                new_cluster_arr.append(temp_arr)
+            while cluster:
+                group(cluster)
+        return new_cluster_arr  
+            
+        #if not (np.abs(curr_pair[1]-next_pair[1])<=10 and np.abs(curr_pair[0]-next_pair[0])<=15) :
+#            k+=1
+#        else:
+#            while np.abs(curr_pair[1]-next_pair[1])<=10 and np.abs(curr_pair[0]-next_pair[0])<=15:
+#                temp_arr.append(next_pair)
+#                k+=1
+#                curr_pair, next_pair = img_arr_pair[k], img_arr_pair[k+1]
+#            
+    new_cluster_arr = go_thru_clusters(clusters)
 
-
-
+    # === get rid of the clusters that are length one
+    delete_arr=[]
+    for index, elem in enumerate(new_cluster_arr):
+        if len(elem) == 1:
+            delete_arr.append(index)
+    new_cluster_arr = np.delete(new_cluster_arr, delete_arr)
+    for elem in new_cluster_arr:
+        print len(elem), elem
+    print len(new_cluster_arr)
 
 
     #for i_col in range(1, len(img)):
@@ -464,7 +519,7 @@ def centroids1(fil, flat_img):
 #		#centroids.append(centroid)
 #	centroids, centroid_errors = np.transpose(centroids)[0], np.transpose(centroids)[1]
 #	return centroids, centroid_errors
-#centroids1(DanaeR_file_arr[5], gainR)
+centroids1(DanaeR_file_arr[5], bias)
 
     
 

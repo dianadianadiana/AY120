@@ -74,14 +74,14 @@ DanaeI_file_arr = [datapath + 'd'+str(i) + '.fits' for i in np.arange(163,172)]
 #     (ii)  i then decided to avg all the flats using the same fn i used on the bias,
 #           they are not corrected in any way
 #     (iii) i then corrected the avg flats in (ii)
-#     (iv)  i thne approached the flat by doing the gain methed (see (5) for more info)
+#     (iv)  i then approached the flat by doing the gain methed (see (5) for more info)
 # (8) Findings!
 #     I then plotted the differences in correcting the img by using the bias and flats
 #     I am very certain that finding the bias was a good way to go, I just wanted to see
 #     and test out how the different approaches in handling the flats would yield diff
 #     corrected displays. 
-#     honestly, i did not find THAT much of a difference, if any when using flat (i) (ii)
-#     or (iii). Maybe the error is not visible to us, but to the computer? Despite the fact
+#     honestly, i did not find THAT much of a difference, if any when using flat (i) (iii)
+#     or (iv). Maybe the error is not visible to us, but to the computer? Despite the fact
 #     that the displays look relatively the same, we decided to go with flat option (iv)
 #     because it really made little to no room for error for future calculations
 # (9) the correct_fits fn corrects the raw img, and by raw, i mean the img loaded in after

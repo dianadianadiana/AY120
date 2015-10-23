@@ -136,6 +136,18 @@ def find_gain(flat_files, bias):
     for flat in data_arr[1:]:
         gain_arr += gain(bias, flat)
     return gain_arr/(len(flat_files))
+def get_gain(hdr):
+    """ returns the average gain based on the fits' filter """
+    filt = hdr['filtnam']
+    if filt == 'B':
+        return find_gain(flatB_file_arr, bias)
+    elif filt == 'V':
+        return find_gain(flatV_file_arr, bias)
+    elif filt == 'R':
+        return find_gain(flatR_file_arr, bias)
+    elif filt == 'I':
+        return find_gain(flatI_file_arr, bias)
+    
 #==================================
 #==================================
 # Bias 
@@ -197,13 +209,13 @@ display_info(WratR_file_arr[3])
 # telescopes was pointing (RA & DEC) and the optical filter in the light path (FILTNAM)
 #==================================
 #==================================    
-def correct_fits(fil, bias, gain):
+def correct_fits(fil, bias,):
     img, hdr = loadfits(fil) # img is corrected for deadpixels and [1024,1024]
-    return (img - bias) * gain
-def display_fits(fil, bias, gain):
+    return (img - bias) * get_gain(hdr)
+def display_fits(fil, bias):
     """Display fits using matplotlib"""    
     img, hdr = loadfits(fil)
-    img = correct_fits(fil, bias, gain)
+    img = correct_fits(fil, bias)
     fig = plt.figure()
     plt.title(hdr['object'], fontsize=18)
     plt.imshow(img, origin='lower', interpolation='nearest', cmap='gray_r', 
@@ -211,7 +223,7 @@ def display_fits(fil, bias, gain):
     plt.colorbar()
     return fig
 
-plt.show(display_fits(DanaeR_file_arr[5], bias, gainR))
+plt.show(display_fits(DanaeR_file_arr[5], bias))
 #display_fits(DanaeR_file_arr[5], flatR_img).savefig(fig_path+'DanaeR_5_corrected.png',dpi=300)
 #==================================
 #==================================
@@ -452,7 +464,7 @@ def centroids1(fil, flat_img):
 #		#centroids.append(centroid)
 #	centroids, centroid_errors = np.transpose(centroids)[0], np.transpose(centroids)[1]
 #	return centroids, centroid_errors
-centroids1(DanaeR_file_arr[5], gainR)
+#centroids1(DanaeR_file_arr[5], gainR)
 
     
 

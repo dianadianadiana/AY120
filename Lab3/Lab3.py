@@ -93,7 +93,8 @@ DanaeI_file_arr = [datapath + 'd'+str(i) + '.fits' for i in np.arange(163,172)]
 def dead_pixels(img):
     """ There are many dead pixels in the CCD detector, so we just set them to avg
     of the img when it is [1024,1024]"""
-    avg = np.median(img[:,:1024])    
+    avg = np.median(img[:,:1024]) 
+       
     img[:,255]=avg; img[:,256]=avg; img[:,1002]=avg # dead pixels -- set to avg
     img[:,1023]=avg; img[:,1024]=avg; img[:,1022]=avg 
     img[:,783]=avg; img[:,784]=avg; img[:,669]=avg
@@ -130,7 +131,7 @@ def find_gain(flat_files, bias):
     def gain(x,y):
         """ x: bias, y:flat -- both are the img matricies 
             gain = np.mean(flat-bias)/(flat-bias) """
-        return np.mean(y-x)/(y-x)
+        return np.mean(y-x)/(y-x) #### makes an error if x-y
     data_arr = [dead_pixels(pf.getdata(fil))[:,:1024] for fil in flat_files] 
     gain_arr = gain(bias, data_arr[0])
     for flat in data_arr[1:]:
@@ -147,7 +148,16 @@ def get_gain(hdr):
         return find_gain(flatR_file_arr, bias)
     elif filt == 'I':
         return find_gain(flatI_file_arr, bias)
-    
+#def get_bias(hdr):
+#    """ 
+#    date is formatted like: 2015-10-14
+#    we want it like: 151013
+#    """
+#    date = hdr['DATE-BEG']
+#    folder = date[2:4] + date[5:7] + date[8:] + '/'
+#    bias_file_arr = [datadir + folder + 'd'+str(i) + '.fits' for i in np.arange(100,115)]
+#    bias = avg_fits_img(bias_file_arr) # take all 14(?) bias files to create averaged one
+#    bias = dead_pixels(bias)[:,:1024] 
 #==================================
 #==================================
 # Bias 
@@ -243,26 +253,16 @@ def display_fits2(fil, bias):
     #plt.show()
     return fig
 
-#plt.show(display_fits(DanaeR_file_arr[5], bias))
+plt.show(display_fits(DanaeR_file_arr[5], bias))
 #plt.show(display_fits2(DanaeR_file_arr[5], bias))
 #display_fits(DanaeR_file_arr[5], flatR_img).savefig(fig_path+'DanaeR_5_corrected.png',dpi=300)
 #==================================
 #==================================
 
-
-
-
-
-
-
-
-
-
-
-###IGNORE
-
+#==================================
 #==================================
 # Centroids
+#==================================
 #==================================
 def max_peaks(arr, width, lower_limit):
     """ Returns an array of the indexes where the indexes indicate where the peaks are"""
@@ -270,9 +270,7 @@ def max_peaks(arr, width, lower_limit):
     return [i for i in range(36, len(arr)-1) if all(arr[i] > arr[i-width:i]) and all(arr[i]>arr[i+1:i+width]) and arr[i]>lower_limit] # 36 is arbitrary
     #assuming that there is nothing before 36
 
-def peaks(fil, bias):
-    info = loadfits(fil)
-    img, hdr = info[0], info[1]
+def find_peaks(fil, bias):
     img = correct_fits(fil, bias)
     avg = np.median(img)
     lim = 2.2*avg
@@ -319,7 +317,9 @@ def peaks(fil, bias):
                 cluster.remove(cluster[0])
                 curr_i = 0
                 while cluster:
-                    if np.abs(cluster[curr_i][1] - temp_arr[-1][1])<15 and np.abs(cluster[curr_i][0] - temp_arr[-1][0]) <=5:
+                    if np.abs(cluster[curr_i][1] - temp_arr[-1][1])<20 and np.abs(cluster[curr_i][0] - temp_arr[-1][0]) <=20:
+                        # first cond: deals with the diff in intensity between different cols
+                        # second cond: deals with the diff in intensity between different rows
                         temp_arr.append(cluster[curr_i])
                         cluster.remove(cluster[curr_i])
                         #print "TEMP", temp_arr
@@ -353,43 +353,10 @@ def peaks(fil, bias):
         intensity_arr = [img[coords[0]][coords[1]] for coords in cluster]
         max_index = np.argmax(intensity_arr)
         peaks.append([cluster[max_index], len(cluster)])
-    
-    for winner in peaks:
-        print winner
     return peaks
 
 
-
-
-        
-    
-        
-  
-    
-    #for i in range(len(img)):
-    #    #print np.where(img[i][max_peaks(img[i])]>3*avg)[0]
-    #    img_arr.append(np.where(img[i][max_peaks(img[i])]>3*avg)[0])
-
-    #print img_arr
-#def centroids(index_arr, x_arr, y_arr, peak_width):
-#        n = peak_width/2
-#	centroids= []
-#	for peak_index in index_arr:
-#		x_range = x_arr[peak_index-n:peak_index+n]
-#		y_range = y_arr[peak_index-n:peak_index+n]
-#		centroid = np.sum(x_range*y_range)/np.sum(y_range) #<x>
-#
-#		numerator = []
-#		for i in x_range:
-#		    numerator.append(y_arr[i]*(x_arr[i]-centroid)**2)
-#		error = np.sum(numerator) / (np.sum(y_range))**2 
-#		centroids.append([centroid, error])
-#		print error
-#		#centroids.append(centroid)
-#	centroids, centroid_errors = np.transpose(centroids)[0], np.transpose(centroids)[1]
-#	return centroids, centroid_errors
-
-def centroid(fil, peaks):
+def centroid1(fil, peaks):
     """ peaks has the form of [[x,y],size] 
     deciding to take into account +- size for centroiding"""
     centroids =[]
@@ -402,9 +369,6 @@ def centroid(fil, peaks):
 	y_range = [[pair[0], y] for y in y] # x is constant val, y is changing
 	x_range_img = [img[i[0],i[1]] for i in x_range] # vals of img at constant y, varying x
 	y_range_img = [img[i[0],i[1]] for i in y_range] # vals of img at constant x, varying y
-	print pair
-	print x
-	print y
 
 	x_centroid =  np.sum(x*x_range_img)/np.sum(x_range_img) #<x>
 	y_centroid =  np.sum(y*y_range_img)/np.sum(y_range_img) #<y>
@@ -413,42 +377,77 @@ def centroid(fil, peaks):
     centroids = np.transpose(centroids)
     centroids_x, centroids_y = centroids[0], centroids[1]
     return centroids_x, centroids_y
-    
-    
-peaks = peaks(DanaeR_file_arr[5], bias)
-print peaks
 
-peaks1 = np.transpose(peaks)
-print 'peaks1', peaks1
-peaks2 = np.transpose(peaks1[0])
-print 'peaks2', peaks2
-print peaks2[0]
-peak_x,peak_y=[],[]
-for peak in peaks2:
-    peak_x.append(peak[0])
-    peak_y.append(peak[1])
-print peak_x
-print peak_y
+def centroid(fil, bias):
+    """ 
+    Purpose:
+        To find the centroids of each peak, given the coordinates of each peak and 
+        their corresponding size. To find the centroid, we simply compute the center
+        of mass in both the x and y direction. To find x_cm and y_cm (center of mass),
+        we find the x_cm of each row (or the y_cm of each col) and take the average.
+        For example, if we have 3 rows and 3 columns, then we take the x_cm of the first,
+        second, and third row individually and then take the average of the x_cm's (likewise 
+        for y_cm)
+    Input:
+        fil: the uncorrected, raw file, that will be corrected
+        bias: the bias 
+    Output: 
+        centroids_x: correlates w cols
+        centroids_y: correlates w rows
+    """
+    centroids =[]
+    img = correct_fits(fil, bias)
+    peaks = find_peaks(fil, bias) # find the peaks, elem of peaks is [[x,y],size]
+    for pair, size in peaks:
+        x_vals = range(pair[0]-size, pair[0]+size+1) # just the ranging x values
+        y_vals = range(pair[1]-size, pair[1]+size+1) # just the ranging y values
+        
+        x_arr =[]
+        for y in y_vals:
+            x_temp = []
+            for x in x_vals:
+                x_temp.append([x,y]) # keeps y constant for varying x; will be used for the x_cm
+            x_arr.append(x_temp)
+        
+        y_arr=[]   
+        for x in x_vals:
+            y_temp = []
+            for y in y_vals:
+                y_temp.append([x,y]) # keeps y constant for varying y; will be used for the y_cm
+            y_arr.append(y_temp)
+        
+        def find_cm(arr, vals):
+            cm_arr=[]
+            for elem in arr:
+                range_img = [img[i[0],i[1]] for i in elem] # vals of img at constant y (or x), varying x (or y)
+                centroid =  np.sum([a*b for a,b in zip(vals,range_img)])/np.sum(range_img) #<x> or <y>
+                cm_arr.append(centroid)
+            return np.sum(cm_arr)/len(cm_arr) # return the avg vals of the center of masses
 
-centroids_x, centroids_y = centroid(DanaeR_file_arr[5],peaks)
-#print centroids
-#plt.scatter(centroids_x,centroids_y,marker='x',s=50)
-plt.show()
-def display_fits_w_centroids(fil, bias, centroids_x, centroids_y):
+        x_cm = find_cm(x_arr, x_vals)
+        y_cm = find_cm(y_arr, y_vals)
+        centroids.append([x_cm,y_cm])
+    
+    centroids = np.transpose(centroids)
+    centroids_x, centroids_y = centroids[0], centroids[1]
+    return centroids_x, centroids_y  # centroids_x ~ cols, centroids_y ~ rows
+        
+        
+def display_fits_w_centroids(fil, bias):
     """Display fits using matplotlib"""    
     img, hdr = loadfits(fil)
     img = correct_fits(fil, bias)
-    #img = img/np.mean(img)
+    img = img/np.mean(img)
+    centroids_x, centroids_y = centroid(fil,bias) # centroids_x ~ cols, centroids_y ~ rows
     fig = plt.figure()
-    plt.title(hdr['object'], fontsize=18)
-    plt.scatter(centroids_x,centroids_y,marker='x',s=50)
+    plt.title(hdr['object']+'CENTROIDS', fontsize=18)
+    plt.scatter(centroids_y,centroids_x,marker='x',s=50)
     plt.imshow(img, origin='lower', interpolation='nearest', cmap='gray_r', 
-               vmin=0.95*np.median(img), vmax=1.7*np.median(img))
+               vmin=0.95*np.median(img), vmax=2*np.median(img))
     plt.colorbar()
     return fig   
 
-plt.show(display_fits_w_centroids(DanaeR_file_arr[5], bias, centroids_y, centroids_x))
-	#plt.imshow(image,cmap='gray_r',vmin=50,vmax=500)
+plt.show(display_fits_w_centroids(DanaeR_file_arr[5], bias))
 	
 
 

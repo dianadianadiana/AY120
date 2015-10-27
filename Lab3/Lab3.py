@@ -17,6 +17,7 @@ import datetime as dt
 #==================================
 datadir='/Users/Diana/Desktop/Astro 120/Lab3/'
 datestr='151013/' #probably want all directory strings storred in an array
+date_folders = ['151013/']
 datapath = datadir + datestr
 fits_list=glob.glob(datadir+datestr+'*.fits') #build list of images
 fig_path = '/Users/Diana/Desktop/Astro 120/Lab3/Figures/'
@@ -27,15 +28,27 @@ fig_path = '/Users/Diana/Desktop/Astro 120/Lab3/Figures/'
 # each element of the array has the syntax of datapath + 'd100.fits'
 # DOES INCLUDE the actual file path
 #==================================
-bias_file_arr = [datapath + 'd'+str(i) + '.fits' for i in np.arange(100,115)]
-flatB_file_arr = [datapath + 'd'+str(i) + '.fits' for i in np.arange(115,118)]
-flatV_file_arr = [datapath + 'd'+str(i) + '.fits' for i in np.arange(118,121)]
-flatR_file_arr = [datapath + 'd'+str(i) + '.fits' for i in np.arange(121,124)]
-flatI_file_arr = [datapath + 'd'+str(i) + '.fits' for i in np.arange(124,127)]
-WratR_file_arr = [datapath + 'd'+str(i) + '.fits' for i in np.arange(131,142)]
-WratI_file_arr = [datapath + 'd'+str(i) + '.fits' for i in np.arange(142,152)]
-DanaeR_file_arr = [datapath + 'd'+str(i) + '.fits' for i in np.arange(152,163)]
-DanaeI_file_arr = [datapath + 'd'+str(i) + '.fits' for i in np.arange(163,172)]
+def get_fitsfiles(date_folder, a, b):
+    return [datadir + date_folder + 'd'+str(i) + '.fits' for i in np.arange(a,b)]
+    get_fitsfiles(date_folders,100,115)
+# from 10 13 15
+bias_file_arr = get_fitsfiles(date_folders[0],100,115)
+flatB_file_arr = get_fitsfiles(date_folders[0],115,118)
+flatV_file_arr = get_fitsfiles(date_folders[0],118,121)
+flatR_file_arr = get_fitsfiles(date_folders[0],121,124)
+flatI_file_arr = get_fitsfiles(date_folders[0],124,127)
+WratR_file_arr = get_fitsfiles(date_folders[0],131,142)
+WratI_file_arr = get_fitsfiles(date_folders[0],142,152)
+DanaeR_file_arr = get_fitsfiles(date_folders[0],152,163)
+DanaeI_file_arr = get_fitsfiles(date_folders[0],163,173)
+AlineR_file_arr = get_fitsfiles(date_folders[0],173,183)
+AlineI_file_arr = get_fitsfiles(date_folders[0],183,193)
+GiselaR_file_arr = get_fitsfiles(date_folders[0],193,203)
+GiselaI_file_arr = get_fitsfiles(date_folders[0],203,213)
+GalateaR_file_arr = get_fitsfiles(date_folders[0],213,223)
+GalateaI_file_arr = get_fitsfiles(date_folders[0],223,233)
+
+
 #==================================
 #==================================
 #####  ======= WAYS THERE ARE ERRORS IN OUR FLAT FIELD CORRECTION
@@ -110,8 +123,7 @@ def loadfits(fil):
     hdulist = pf.open(fil)
     img = hdulist[0].data # the matrix data
     hdr= hdulist[0].header # the header
-    print "***", np.median(img), '***'
-    print hdr['object']
+    print "Loading file for", hdr['object']
     img = dead_pixels(img)
     img = img[:,:1024] #ignore the 32 columns
     return [img, hdr]
@@ -141,29 +153,21 @@ def get_gain(hdr):
     """ returns the average gain based on the fits' filter """
     filt = hdr['filtnam']
     if filt == 'B':
-        return find_gain(flatB_file_arr, bias)
+        return find_gain(flatB_file_arr, get_bias())
     elif filt == 'V':
-        return find_gain(flatV_file_arr, bias)
+        return find_gain(flatV_file_arr, get_bias())
     elif filt == 'R':
-        return find_gain(flatR_file_arr, bias)
+        return find_gain(flatR_file_arr, get_bias())
     elif filt == 'I':
-        return find_gain(flatI_file_arr, bias)
-#def get_bias(hdr):
-#    """ 
-#    date is formatted like: 2015-10-14
-#    we want it like: 151013
-#    """
-#    date = hdr['DATE-BEG']
-#    folder = date[2:4] + date[5:7] + date[8:] + '/'
-#    bias_file_arr = [datadir + folder + 'd'+str(i) + '.fits' for i in np.arange(100,115)]
-#    bias = avg_fits_img(bias_file_arr) # take all 14(?) bias files to create averaged one
-#    bias = dead_pixels(bias)[:,:1024] 
+        return find_gain(flatI_file_arr, get_bias())
+
 #==================================
 #==================================
 # Bias 
 #==================================
-bias = avg_fits_img(bias_file_arr) # take all 14(?) bias files to create averaged one
-bias = dead_pixels(bias)[:,:1024]  # correct for dead pixels and then make it [1024,1024]
+def get_bias():
+    bias = avg_fits_img(bias_file_arr) # take all 14(?) bias files to create averaged one
+    return dead_pixels(bias)[:,:1024] # correct for dead pixels and then make it [1024,1024]
 #==================================
 
 #==================================
@@ -185,10 +189,10 @@ flatV_img_avg = dead_pixels(flatV_img_avg)[:,:1024]
 flatR_img_avg = dead_pixels(flatR_img_avg)[:,:1024]
 flatI_img_avg = dead_pixels(flatI_img_avg)[:,:1024]
 # gain 
-gainB = find_gain(flatB_file_arr, bias)
-gainV = find_gain(flatV_file_arr, bias)
-gainR = find_gain(flatR_file_arr, bias)
-gainI = find_gain(flatI_file_arr, bias)
+gainB = find_gain(flatB_file_arr, get_bias())
+gainV = find_gain(flatV_file_arr, get_bias())
+gainR = find_gain(flatR_file_arr, get_bias())
+gainI = find_gain(flatI_file_arr, get_bias())
 #==================================
 
 #==================================
@@ -219,16 +223,16 @@ display_info(WratR_file_arr[3])
 # telescopes was pointing (RA & DEC) and the optical filter in the light path (FILTNAM)
 #==================================
 #==================================    
-def correct_fits(fil, bias,):
+def correct_fits(fil):
     img, hdr = loadfits(fil) # img is corrected for deadpixels and [1024,1024]
-    return (img - bias) * get_gain(hdr)
+    return (img - get_bias()) * get_gain(hdr)
 def normalize_img(img):
     return img / np.median(img)
     
-def display_fits(fil, bias):
+def display_fits(fil):
     """Display fits using matplotlib"""    
     img, hdr = loadfits(fil)
-    img = correct_fits(fil, bias)
+    img = correct_fits(fil)
     img = img/np.mean(img)
     fig = plt.figure()
     plt.title(hdr['object'], fontsize=18)
@@ -236,10 +240,10 @@ def display_fits(fil, bias):
                vmin=0.95*np.median(img), vmax=1.7*np.median(img))
     plt.colorbar()
     return fig
-def display_fits2(fil, bias):
+def display_fits2(fil):
     """Display fits using matplotlib"""    
     img, hdr = loadfits(fil)
-    img_c = correct_fits(fil, bias)
+    img_c = correct_fits(fil)
     img = img/np.mean(img)
     img_c = img_c/np.mean(img_c)
     
@@ -253,9 +257,9 @@ def display_fits2(fil, bias):
     #plt.show()
     return fig
 
-plt.show(display_fits(DanaeR_file_arr[5], bias))
-#plt.show(display_fits2(DanaeR_file_arr[5], bias))
-#display_fits(DanaeR_file_arr[5], flatR_img).savefig(fig_path+'DanaeR_5_corrected.png',dpi=300)
+#plt.show(display_fits(DanaeR_file_arr[5]))
+#plt.show(display_fits2(DanaeR_file_arr[5]))
+#display_fits(DanaeR_file_arr[5]).savefig(fig_path+'DanaeR_5_corrected.png',dpi=300)
 #==================================
 #==================================
 
@@ -267,34 +271,40 @@ plt.show(display_fits(DanaeR_file_arr[5], bias))
 def max_peaks(arr, width, lower_limit):
     """ Returns an array of the indexes where the indexes indicate where the peaks are"""
     #return [i for i in range(1, len(arr)-1) if arr[i-1]<arr[i] and arr[i+1]<arr[i] and arr[i]>lower_limit]
-    return [i for i in range(36, len(arr)-1) if all(arr[i] > arr[i-width:i]) and all(arr[i]>arr[i+1:i+width]) and arr[i]>lower_limit] # 36 is arbitrary
+    return [i for i in range(1, len(arr)-1) if all(arr[i] > arr[i-width:i]) and all(arr[i]>arr[i+1:i+width]) and arr[i]>lower_limit] # 36 is arbitrary
     #assuming that there is nothing before 36
 
-def find_peaks(fil, bias):
-    img = correct_fits(fil, bias)
+def find_peaks(fil):
+    img = correct_fits(fil)
     avg = np.median(img)
     lim = 2.2*avg
-    #[x][y]
-    img_arr = [[]] #ignore the 0th row as not having anything
+    #[x][y] [row][col]
     # find the initial pixel values that are above the limit (=constant*avg)
     # img_arr has the following syntax:
-    # the index of img_arr corresponds to the x value of the pixel
+    # the index of img_arr corresponds to the row value of the pixel
     # img_arr[782] represents the 782th row of the array
     # when img_arr[782] = [653, 897], that means that pixels [782,653] and [782,897] are above the limit
+    # if img_arr[456] = [], that means that in the 456th row, there are no pixels that are above the limit
+    img_arr = [[]] #ignore the 0th row as not having anything
     for i_row in range(1, len(img)): #range starts at 1 bc of the assumption that img[0] has nothing
-        img_arr.append(max_peaks(img[i_row], 10, lim))
-
-    
+        # apply max_peaks to each row (similar to Lab2)
+        img_arr.append(max_peaks(img[i_row], width=10, lower_limit=lim))
 
     def cluster(img_arr):
-        cluster_arr=[]
-        k=0
-        while k <len(img_arr)-1:
+        """ The return value cluster_arr is an array where it takes in img_arr and
+        sees something like this (where the number correlates to the index of img_arr 
+        and the array at that index)
+        287 []; 288 []; 289 []; 290 [654, 786]; 291 [656]; 292 []; 293 []; 294 []
+        and groups it like so [ [290, 654], [290,786], [291,656] ] -- this is one cluster
+        cluster_arr is an array of multiple 'cluster's like above
+        """
+        cluster_arr, k = [], 0 # index k represents the current index in img_arr
+        while k < len(img_arr)-1:
             curr = img_arr[k]
             if len(curr) >= 1:
                 temp_arr = [[k,elem] for elem in curr]
                 j=k+1
-                while len(img_arr[j]) >= 1:
+                while j < len(img_arr) and len(img_arr[j]) >= 1:
                     for elem in img_arr[j]:
                         temp_arr.append([j,elem])
                     j+=1
@@ -302,11 +312,35 @@ def find_peaks(fil, bias):
                 cluster_arr.append(temp_arr)
             k+=1
         return cluster_arr
-    # clusters is an array where it takes in img_arr and sees something like this
-    # 289 []; 290 [654, 786]; 291 [656]; 292 [] 
-    # and groups it like so [ [290, 654], [290,786], [291,656] ] -- this is one cluster
-    # clusters is an array of multiple 'cluster' like above
+        
+    #for index, elem in enumerate(img_arr):
+    #    print index, elem
+        
+    
+    def boundary_limits(img_arr):  
+    # to account for the top left corner and bottom right false positives  (first if)
+    # to account for the right side where lots of false positives are recorded (second if)    
+        index=0
+        count=0
+        while index < len(img_arr):
+            if img_arr[index] and (index<=35 or index>=(1024-40)) and (img_arr[index][0]<=35):
+                img_arr[index]=[]
+            elif img_arr[index] and [i for i in img_arr[index] if i >=1010]:
+                count+=1
+            index+=1
+        index=0
+        if count > 50:
+            while index < len(img_arr):
+                if img_arr[index] and [i for i in img_arr[index] if i >=1010]:
+                    for i in img_arr[index]:
+                        if i>=1010: img_arr[index].remove(i)
+                index+=1
+        return img_arr
+    img_arr = boundary_limits(img_arr)
     clusters = cluster(img_arr)
+    #print '***'
+    #for cluster in clusters:
+    #    print cluster
     
     def go_thru_clusters(clusters):
         new_cluster_arr =[]
@@ -318,8 +352,8 @@ def find_peaks(fil, bias):
                 curr_i = 0
                 while cluster:
                     if np.abs(cluster[curr_i][1] - temp_arr[-1][1])<20 and np.abs(cluster[curr_i][0] - temp_arr[-1][0]) <=20:
-                        # first cond: deals with the diff in intensity between different cols
-                        # second cond: deals with the diff in intensity between different rows
+                        # first cond: deals with the diff in cols
+                        # second cond: deals with the diff in rows
                         temp_arr.append(cluster[curr_i])
                         cluster.remove(cluster[curr_i])
                         #print "TEMP", temp_arr
@@ -341,7 +375,8 @@ def find_peaks(fil, bias):
     new_cluster_arr = go_thru_clusters(clusters)
     
     # === get rid of the clusters that are length one because those are just systematic errors
-    # that were picked up
+    # that were picked up/or pixels that were above the limit but have no correlating pixels
+    # near them
     delete_arr=[]
     for index, elem in enumerate(new_cluster_arr):
         if len(elem) == 1:
@@ -355,30 +390,7 @@ def find_peaks(fil, bias):
         peaks.append([cluster[max_index], len(cluster)])
     return peaks
 
-
-def centroid1(fil, peaks):
-    """ peaks has the form of [[x,y],size] 
-    deciding to take into account +- size for centroiding"""
-    centroids =[]
-    img, hdr = loadfits(fil)
-    img = correct_fits(fil, bias)
-    for pair, size in peaks:
-        x = range(pair[0]-size, pair[0]+size+1) # just the x values
-        y =range(pair[1]-size, pair[1]+size+1) # just the y values
-        x_range = [[x, pair[1]] for x in x] # y is constant val, x is changing
-	y_range = [[pair[0], y] for y in y] # x is constant val, y is changing
-	x_range_img = [img[i[0],i[1]] for i in x_range] # vals of img at constant y, varying x
-	y_range_img = [img[i[0],i[1]] for i in y_range] # vals of img at constant x, varying y
-
-	x_centroid =  np.sum(x*x_range_img)/np.sum(x_range_img) #<x>
-	y_centroid =  np.sum(y*y_range_img)/np.sum(y_range_img) #<y>
-	
-	centroids.append([x_centroid, y_centroid])
-    centroids = np.transpose(centroids)
-    centroids_x, centroids_y = centroids[0], centroids[1]
-    return centroids_x, centroids_y
-
-def centroid(fil, bias):
+def centroid(fil):
     """ 
     Purpose:
         To find the centroids of each peak, given the coordinates of each peak and 
@@ -392,16 +404,24 @@ def centroid(fil, bias):
         fil: the uncorrected, raw file, that will be corrected
         bias: the bias 
     Output: 
-        centroids_x: correlates w cols
-        centroids_y: correlates w rows
+        centroids_x: correlates w cols, all the x_cm's
+        centroids_y: correlates w rows, all the y_cm's
+        [centroids_x[i], centroids_y[i]] correlate to a centroid pixel 
+    peaks has the form of [[x,y],size] 
+    deciding to take into account +- size for centroiding
     """
     centroids =[]
-    img = correct_fits(fil, bias)
-    peaks = find_peaks(fil, bias) # find the peaks, elem of peaks is [[x,y],size]
+    img = correct_fits(fil)
+    peaks = find_peaks(fil) # find the peaks, elem of peaks is [[x,y],size]
+    for peak in peaks:
+        print peak
     for pair, size in peaks:
-        x_vals = range(pair[0]-size, pair[0]+size+1) # just the ranging x values
-        y_vals = range(pair[1]-size, pair[1]+size+1) # just the ranging y values
-        
+        x_lower = 0 if pair[0]-size <= 0 else pair[0]-size
+        x_upper = 1023 if pair[0]+size >=1024 else pair[0]+size
+        y_lower = 0 if pair[1]-size <= 0 else pair[1]-size
+        y_upper = 1023 if pair[1]+size >=1024 else  pair[1]+size
+        x_vals = range(x_lower, x_upper) # just the ranging x values
+        y_vals = range(y_lower, y_upper) # just the ranging y values
         x_arr =[]
         for y in y_vals:
             x_temp = []
@@ -433,22 +453,41 @@ def centroid(fil, bias):
     return centroids_x, centroids_y  # centroids_x ~ cols, centroids_y ~ rows
         
         
-def display_fits_w_centroids(fil, bias):
+def display_fits_w_centroids(fil):
     """Display fits using matplotlib"""    
     img, hdr = loadfits(fil)
-    img = correct_fits(fil, bias)
+    img = correct_fits(fil)
     img = img/np.mean(img)
-    centroids_x, centroids_y = centroid(fil,bias) # centroids_x ~ cols, centroids_y ~ rows
+    centroids_x, centroids_y = centroid(fil) # centroids_x ~ cols, centroids_y ~ rows
     fig = plt.figure()
-    plt.title(hdr['object']+'CENTROIDS', fontsize=18)
-    plt.scatter(centroids_y,centroids_x,marker='x',s=50)
+    plt.title(hdr['object']+' CENTROIDS: ' + str(len(centroids_x)), fontsize=18)
+    plt.scatter(centroids_y,centroids_x,marker='x',s=100)
     plt.imshow(img, origin='lower', interpolation='nearest', cmap='gray_r', 
                vmin=0.95*np.median(img), vmax=2*np.median(img))
     plt.colorbar()
     return fig   
+    
+#plt.show(display_fits(GiselaI_file_arr[5]))
 
-plt.show(display_fits_w_centroids(DanaeR_file_arr[5], bias))
-	
+plt.show(display_fits_w_centroids(WratR_file_arr[5]))
+#plt.show(display_fits_w_centroids(WratI_file_arr[5]))
+#plt.show(display_fits_w_centroids(DanaeR_file_arr[5])) #stil has two objects w two centroids... ugh
+#plt.show(display_fits_w_centroids(DanaeI_file_arr[5]))
+#plt.show(display_fits_w_centroids(AlineR_file_arr[5]))
+#plt.show(display_fits_w_centroids(AlineI_file_arr[5]))
+#plt.show(display_fits_w_centroids(GiselaR_file_arr[5])) ## need 2.5avg
+#plt.show(display_fits_w_centroids(GiselaI_file_arr[5]))
+#plt.show(display_fits_w_centroids(GalateaR_file_arr[5])) 
+#plt.show(display_fits_w_centroids(GalateaI_file_arr[5]))
+
+
+
+
+
+
+
+
+
 
 
     

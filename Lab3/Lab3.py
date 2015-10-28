@@ -16,10 +16,7 @@ import datetime as dt
 # Global Variables
 #==================================
 datadir='/Users/Diana/Desktop/Astro 120/Lab3/'
-datestr='151013/' #probably want all directory strings storred in an array
-date_folders = ['151013/']
-datapath = datadir + datestr
-fits_list=glob.glob(datadir+datestr+'*.fits') #build list of images
+date_folders = ['151013/', '151019/', '151020/']
 fig_path = '/Users/Diana/Desktop/Astro 120/Lab3/Figures/'
 #==================================
 
@@ -30,7 +27,6 @@ fig_path = '/Users/Diana/Desktop/Astro 120/Lab3/Figures/'
 #==================================
 def get_fitsfiles(date_folder, a, b):
     return [datadir + date_folder + 'd'+str(i) + '.fits' for i in np.arange(a,b)]
-    get_fitsfiles(date_folders,100,115)
 # from 10 13 15
 bias_file_arr = get_fitsfiles(date_folders[0],100,115)
 flatB_file_arr = get_fitsfiles(date_folders[0],115,118)
@@ -47,8 +43,47 @@ GiselaR_file_arr = get_fitsfiles(date_folders[0],193,203)
 GiselaI_file_arr = get_fitsfiles(date_folders[0],203,213)
 GalateaR_file_arr = get_fitsfiles(date_folders[0],213,223)
 GalateaI_file_arr = get_fitsfiles(date_folders[0],223,233)
+flat_arr = [flatB_file_arr,flatV_file_arr,flatR_file_arr,flatI_file_arr]
 
+# from 10 19 15
+bias_file_arr1 = get_fitsfiles(date_folders[1],100,115)
+flatB_file_arr1 = get_fitsfiles(date_folders[1],115,118)
+flatV_file_arr1 = get_fitsfiles(date_folders[1],118,121)
+flatR_file_arr1 = get_fitsfiles(date_folders[1],121,124)
+flatI_file_arr1 = get_fitsfiles(date_folders[1],125,128) # 124 was BAD
+AlineR_file_arr1 = get_fitsfiles(date_folders[1],128,138)
+AlineI_file_arr1 = get_fitsfiles(date_folders[1],138,148)
+GiselaR_file_arr1BAD = get_fitsfiles(date_folders[1],148,156) # bad files
+WratR_file_arr1 = get_fitsfiles(date_folders[1],156,167)
+WratI_file_arr1 = get_fitsfiles(date_folders[1],167,177)
+DanaeR_file_arr1 = get_fitsfiles(date_folders[1],177,188)
+DanaeI_file_arr1 = get_fitsfiles(date_folders[1],188,198)
+GiselaR_file_arr1 = get_fitsfiles(date_folders[1],198,208)
+GiselaI_file_arr1 = get_fitsfiles(date_folders[1],208,218)
+GalateaR_file_arr1 = get_fitsfiles(date_folders[1],218,228)
+GalateaI_file_arr1 = get_fitsfiles(date_folders[1],228,238)
+flat_arr1 = [flatB_file_arr1,flatV_file_arr1,flatR_file_arr1,flatI_file_arr1]
 
+# from 10 20 15
+bias_file_arr2 = get_fitsfiles(date_folders[2],100,115)
+flatB_file_arr2 = get_fitsfiles(date_folders[2],115,118)
+flatV_file_arr2 = get_fitsfiles(date_folders[2],118,121)
+flatR_file_arr2 = get_fitsfiles(date_folders[2],122,125) #121 was BAD
+flatI_file_arr2 = get_fitsfiles(date_folders[2],125,128) 
+WratR_file_arr2 = get_fitsfiles(date_folders[2],128,138)
+WratI_file_arr2 = get_fitsfiles(date_folders[2],138,148)
+DanaeR_file_arr2 = get_fitsfiles(date_folders[2],148,158)
+DanaeI_file_arr2 = get_fitsfiles(date_folders[2],158,168)
+GalateaR_file_arr2 = get_fitsfiles(date_folders[2],168,178)
+GalateaI_file_arr2 = get_fitsfiles(date_folders[2],178,188)
+AlineR_file_arr2 = get_fitsfiles(date_folders[2],188,198)
+AlineI_file_arr2 = get_fitsfiles(date_folders[2],198,208)
+GiselaR_file_arr2 = get_fitsfiles(date_folders[2],208,218)
+GiselaI_file_arr2 = get_fitsfiles(date_folders[2],218,228)
+flat_arr2 = [flatB_file_arr2, flatV_file_arr2, flatR_file_arr2, flatI_file_arr2]
+
+all_bias_arr = [bias_file_arr, bias_file_arr1, bias_file_arr2]
+all_flat_arr = [flat_arr, flat_arr1, flat_arr2]
 #==================================
 #==================================
 #####  ======= WAYS THERE ARE ERRORS IN OUR FLAT FIELD CORRECTION
@@ -107,7 +142,6 @@ def dead_pixels(img):
     """ There are many dead pixels in the CCD detector, so we just set them to avg
     of the img when it is [1024,1024]"""
     avg = np.median(img[:,:1024]) 
-       
     img[:,255]=avg; img[:,256]=avg; img[:,1002]=avg # dead pixels -- set to avg
     img[:,1023]=avg; img[:,1024]=avg; img[:,1022]=avg 
     img[:,783]=avg; img[:,784]=avg; img[:,669]=avg
@@ -151,22 +185,24 @@ def find_gain(flat_files, bias):
     return gain_arr/(len(flat_files))
 def get_gain(hdr):
     """ returns the average gain based on the fits' filter """
-    filt = hdr['filtnam']
-    if filt == 'B':
-        return find_gain(flatB_file_arr, get_bias())
-    elif filt == 'V':
-        return find_gain(flatV_file_arr, get_bias())
-    elif filt == 'R':
-        return find_gain(flatR_file_arr, get_bias())
-    elif filt == 'I':
-        return find_gain(flatI_file_arr, get_bias())
-
+    filt, day = hdr['filtnam'], hdr['DATE-BEG'][8:10]
+    if filt == 'B': index = 0
+    elif filt == 'V': index = 1
+    elif filt == 'R': index = 2
+    elif filt == 'I': index = 3
+    if day == '14': return find_gain(all_flat_arr[0][index], get_bias(hdr))
+    elif day == '20': return find_gain(all_flat_arr[1][index], get_bias(hdr))
+    elif day == '21': return find_gain(all_flat_arr[2][index], get_bias(hdr))
 #==================================
 #==================================
 # Bias 
 #==================================
-def get_bias():
-    bias = avg_fits_img(bias_file_arr) # take all 14(?) bias files to create averaged one
+def get_bias(hdr):
+    day = hdr['DATE-BEG'][8:10]
+    if day == '14': index = 0 #for day 10 / 13 / 15
+    elif day == '20': index = 1 #for day 10 / 19 / 15
+    elif day == '21': index = 2 #for day 10 / 20 / 15
+    bias = avg_fits_img(all_bias_arr[index]) # take all 14(?) bias files to create averaged one
     return dead_pixels(bias)[:,:1024] # correct for dead pixels and then make it [1024,1024]
 #==================================
 
@@ -189,10 +225,10 @@ flatV_img_avg = dead_pixels(flatV_img_avg)[:,:1024]
 flatR_img_avg = dead_pixels(flatR_img_avg)[:,:1024]
 flatI_img_avg = dead_pixels(flatI_img_avg)[:,:1024]
 # gain 
-gainB = find_gain(flatB_file_arr, get_bias())
-gainV = find_gain(flatV_file_arr, get_bias())
-gainR = find_gain(flatR_file_arr, get_bias())
-gainI = find_gain(flatI_file_arr, get_bias())
+#gainB = find_gain(flatB_file_arr, get_bias())
+#gainV = find_gain(flatV_file_arr, get_bias())
+#gainR = find_gain(flatR_file_arr, get_bias())
+#gainI = find_gain(flatI_file_arr, get_bias())
 #==================================
 
 #==================================
@@ -208,12 +244,11 @@ def display_info(fil):
     print 'start time temperature (deg C):', hdr['tempdet']
     print 'filter:', hdr['filtnam']
     print 'cover:',hdr.get('cover')
+    print 'epoch:', hdr['EQUINOXU']
     print '****************'
-
-display_info(WratR_file_arr[0])
-display_info(WratR_file_arr[1])
-display_info(WratR_file_arr[2])
-display_info(WratR_file_arr[3])
+    return [hdr['object'], hdr['exptime'], hdr['DATE-BEG'], hdr['dec'], hdr['ra'], 
+    hdr['tempdet'],  hdr['filtnam'], hdr.get('cover'), hdr['EQUINOXU']]
+#info = display_info(AlineR_file_arr1[5])
 
 #An HDU (Header Data Unit) is the highest level component of the FITS file structure, 
 #consisting of a header and (typically) a data array or table.
@@ -224,8 +259,9 @@ display_info(WratR_file_arr[3])
 #==================================
 #==================================    
 def correct_fits(fil):
+    #day = fil[-12:-10]
     img, hdr = loadfits(fil) # img is corrected for deadpixels and [1024,1024]
-    return (img - get_bias()) * get_gain(hdr)
+    return (img - get_bias(hdr)) * get_gain(hdr)
 def normalize_img(img):
     return img / np.median(img)
     
@@ -233,7 +269,7 @@ def display_fits(fil):
     """Display fits using matplotlib"""    
     img, hdr = loadfits(fil)
     img = correct_fits(fil)
-    img = img/np.mean(img)
+    img = normalize_img(img)
     fig = plt.figure()
     plt.title(hdr['object'], fontsize=18)
     plt.imshow(img, origin='lower', interpolation='nearest', cmap='gray_r', 
@@ -257,8 +293,9 @@ def display_fits2(fil):
     #plt.show()
     return fig
 
+
 #plt.show(display_fits(DanaeR_file_arr[5]))
-#plt.show(display_fits2(DanaeR_file_arr[5]))
+#plt.show(display_fits2(WratR_file_arr2[1]))
 #display_fits(DanaeR_file_arr[5]).savefig(fig_path+'DanaeR_5_corrected.png',dpi=300)
 #==================================
 #==================================
@@ -275,6 +312,7 @@ def max_peaks(arr, width, lower_limit):
     #assuming that there is nothing before 36
 
 def find_peaks(fil):
+    print 'Calculating the peaks for', pf.open(fil)[0].header['object']
     img = correct_fits(fil)
     avg = np.median(img)
     lim = 2.2*avg
@@ -413,8 +451,9 @@ def centroid(fil):
     centroids =[]
     img = correct_fits(fil)
     peaks = find_peaks(fil) # find the peaks, elem of peaks is [[x,y],size]
-    for peak in peaks:
-        print peak
+    #for peak in peaks:
+    #    print peak
+    print 'Calculating the centroids for', pf.open(fil)[0].header['object']
     for pair, size in peaks:
         x_lower = 0 if pair[0]-size <= 0 else pair[0]-size
         x_upper = 1023 if pair[0]+size >=1024 else pair[0]+size
@@ -455,7 +494,7 @@ def centroid(fil):
         
 def display_fits_w_centroids(fil):
     """Display fits using matplotlib"""    
-    img, hdr = loadfits(fil)
+    hdr = loadfits(fil)[1]
     img = correct_fits(fil)
     img = img/np.mean(img)
     centroids_x, centroids_y = centroid(fil) # centroids_x ~ cols, centroids_y ~ rows
@@ -468,26 +507,99 @@ def display_fits_w_centroids(fil):
     return fig   
     
 #plt.show(display_fits(GiselaI_file_arr[5]))
-
-plt.show(display_fits_w_centroids(WratR_file_arr[5]))
+#plt.show(display_fits_w_centroids(GiselaI_file_arr2[0]))
 #plt.show(display_fits_w_centroids(WratI_file_arr[5]))
+#plt.show(display_fits_w_centroids(WratR_file_arr1[5]))
 #plt.show(display_fits_w_centroids(DanaeR_file_arr[5])) #stil has two objects w two centroids... ugh
 #plt.show(display_fits_w_centroids(DanaeI_file_arr[5]))
-#plt.show(display_fits_w_centroids(AlineR_file_arr[5]))
+#plt.show(display_fits_w_centroids(AlineI_file_arr1[0]))
 #plt.show(display_fits_w_centroids(AlineI_file_arr[5]))
 #plt.show(display_fits_w_centroids(GiselaR_file_arr[5])) ## need 2.5avg
 #plt.show(display_fits_w_centroids(GiselaI_file_arr[5]))
 #plt.show(display_fits_w_centroids(GalateaR_file_arr[5])) 
 #plt.show(display_fits_w_centroids(GalateaI_file_arr[5]))
+#==================================
+#==================================
 
+#==================================
+#==================================
+# Star Matching
+#==================================
+#==================================
+def usno(radeg,decdeg,fovam,epoch):
+ # James R. Graham 2013/10/13 UC Berkeley
+ # get USNO B-1 stars centered at radeg and decdeg (J2000.0) in degrees centered 
+ # in a square field of view (arc min). Corrects for proper motion to current epoch.
+    import urllib as url
+    import numpy as np
+    import string as str
+    import pdb
 
+    str1 = 'http://webviz.u-strasbg.fr/viz-bin/asu-tsv/?-source=USNO-B1'
+    str2 = '&-c.ra={:4.6f}&-c.dec={:4.6f}&-c.bm={:4.7f}/{:4.7f}&-out.max=unlimited'.format(radeg,decdeg,fovam,fovam)
+    string = str1+str2
+    print 'Calling Vizier', string
+    f = url.urlopen(string)
+# Read from the object, storing the page's contents in 's'.
+    s = f.read()
+    f.close()
+ 
+    sl = s.splitlines()[45:-1] # get rid of header - updated Oct 2013
+    name = np.array([])
+    rad = np.array([]) # RA in degrees
+    ded = np.array([]) # DEC in degrees
+    rmag = np.array([]) # rmage
+    for k in sl:
+        kw = k.split('\t')
+        ded0 = float(kw[2])
+        pmrad = float(kw[6])/3600e3/np.cos(np.deg2rad(ded0)) # comvert from mas/yr to deg/year
+        pmded = float(kw[7])/3600e3 
+        name = np.append(name,kw[0])
+        rad = np.append(rad,float(kw[1]) + pmrad*(epoch-2000.0) ) 
+        ded = np.append(ded,float(kw[2]) + pmded*(epoch-2000.0) )
+        if kw[12] != '     ': # case when no mag is reported
+            rmag = np.append(rmag,float(kw[12])) 
+        else:
+            rmag = np.append(rmag,np.nan)
+    return name,rad,ded,rmag
+    
 
-
-
-
-
-
-
+##looking at star catalogs
+#info= display_info(WratI_file_arr[5])
+#print info
+#ra, dec, epoch = info[4], info[3], info[8]
+#print 'ra', ra
+#print 'dec', dec
+#print 'epoch', epoch
+#
+#radeg=15*(float(ra[0:2])+float(ra[3:5])/60.+float(ra[6:])/3600.)
+#dsgn=np.sign(float(dec[0:2]))
+#dedeg=float(dec[0:2])+dsgn*float(dec[3:5])/60. + dsgn*float(dec[6:])/3600.
+#fovam=3.0
+#print radeg, dsgn, dedeg, fovam
+#
+#name,rad,ded,rmag=usno(radeg,dedeg,fovam,epoch)
+#print name
+#print rad
+#print ded
+#print rmag
+#
+##w = np.where(rmag <20.)[0]
+##print w
+#
+##plt.plot(rad[w],ded[w],'g.')
+#fig = plt.figure()
+#plt.plot(rad,ded,'g.')
+#plt.locator_params(axis='x',nbins=4)
+#plt.locator_params(axis='y',nbins=4)
+#plt.tick_params('x',pad=10)
+#plt.xlabel('RA [Deg]')
+#plt.ylabel('Dec [Deg]')
+#plt.ticklabel_format(useOffset=False)
+#plt.axis('scaled')
+#plt.gca().invert_xaxis()
+#
+#
 
 
     

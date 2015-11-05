@@ -259,6 +259,7 @@ def display_info(fil):
 #==================================
 #==================================    
 def correct_fits(fil):
+    """Returns the corrected image"""
     #day = fil[-12:-10]
     img, hdr = loadfits(fil) # img is corrected for deadpixels and [1024,1024]
     return (img - get_bias(hdr)) * get_gain(hdr)
@@ -500,7 +501,7 @@ def display_fits_w_centroids(fil):
     centroids_x, centroids_y = centroid(fil) # centroids_x ~ cols, centroids_y ~ rows
     fig = plt.figure()
     plt.title(hdr['object']+' CENTROIDS: ' + str(len(centroids_x)), fontsize=18)
-    plt.scatter(centroids_y,centroids_x,marker='x',s=100)
+    plt.scatter(centroids_y, centroids_x, marker='x',s=100)
     plt.imshow(img, origin='lower', interpolation='nearest', cmap='gray_r', 
                vmin=0.95*np.median(img), vmax=2*np.median(img))
     plt.colorbar()
@@ -531,7 +532,6 @@ def usno(radeg,decdeg,fovam,epoch):
  # get USNO B-1 stars centered at radeg and decdeg (J2000.0) in degrees centered 
  # in a square field of view (arc min). Corrects for proper motion to current epoch.
     import urllib as url
-    import numpy as np
     import string as str
     import pdb
 
@@ -540,7 +540,7 @@ def usno(radeg,decdeg,fovam,epoch):
     string = str1+str2
     print 'Calling Vizier', string
     f = url.urlopen(string)
-# Read from the object, storing the page's contents in 's'.
+    # Read from the object, storing the page's contents in 's'.
     s = f.read()
     f.close()
  
@@ -563,43 +563,274 @@ def usno(radeg,decdeg,fovam,epoch):
             rmag = np.append(rmag,np.nan)
     return name,rad,ded,rmag
     
-
-##looking at star catalogs
-#info= display_info(WratI_file_arr[5])
-#print info
-#ra, dec, epoch = info[4], info[3], info[8]
-#print 'ra', ra
-#print 'dec', dec
-#print 'epoch', epoch
-#
-#radeg=15*(float(ra[0:2])+float(ra[3:5])/60.+float(ra[6:])/3600.)
-#dsgn=np.sign(float(dec[0:2]))
-#dedeg=float(dec[0:2])+dsgn*float(dec[3:5])/60. + dsgn*float(dec[6:])/3600.
-#fovam=3.0
-#print radeg, dsgn, dedeg, fovam
-#
-#name,rad,ded,rmag=usno(radeg,dedeg,fovam,epoch)
-#print name
-#print rad
-#print ded
-#print rmag
-#
-##w = np.where(rmag <20.)[0]
-##print w
-#
-##plt.plot(rad[w],ded[w],'g.')
-#fig = plt.figure()
-#plt.plot(rad,ded,'g.')
-#plt.locator_params(axis='x',nbins=4)
-#plt.locator_params(axis='y',nbins=4)
-#plt.tick_params('x',pad=10)
-#plt.xlabel('RA [Deg]')
-#plt.ylabel('Dec [Deg]')
-#plt.ticklabel_format(useOffset=False)
-#plt.axis('scaled')
-#plt.gca().invert_xaxis()
-#
-#
-
-
+#==================================
+#looking at star catalogs
+#Read the position fromt the FITS file, and convert RA/DEC to degrees
+#==================================
+def USNOhelper(fil):
+    info= display_info(fil)
+    ra, dec, epoch = info[4], info[3], info[8]
+    print 'ra', ra
+    print 'dec', dec
+    print 'epoch', epoch
     
+    radeg = 15*(float(ra[0:2])+float(ra[3:5])/60.+float(ra[6:])/3600.)
+    dsgn = np.sign(float(dec[0:2]))
+    dedeg = float(dec[0:2])+dsgn*float(dec[3:5])/60. + dsgn*float(dec[6:])/3600.
+    fovam = 6.3
+    return radeg, dsgn, dedeg, fovam, epoch
+
+def plotUSNO(fil):
+    """ This function just plots the USNO catalog of stars, given a fits file"""
+    radeg, dsgn, dedeg, fovam, epoch = USNOhelper(fil)
+    name, rad, ded, rmag = usno(radeg,dedeg,fovam,epoch)
+    print 'name', name
+    print 'rad', rad
+    print 'ded', ded
+    print 'rmag', rmag
+    
+    w = np.where(rmag <18.)[0]
+    fig = plt.figure()
+    plt.plot(rad[w],ded[w],'g.')
+    plt.locator_params(axis='x',nbins=4); plt.locator_params(axis='y',nbins=4)
+    plt.tick_params('x',pad=10)
+    plt.xlabel('RA [Deg]'); plt.ylabel('Dec [Deg]')
+    plt.ticklabel_format(useOffset=False)
+    plt.axis('scaled')
+    plt.gca().invert_xaxis()
+    return fig
+
+#plt.show(plotUSNO(DanaeR_file_arr[5]))
+
+###################### MELS CODE for mapcoord ########################
+#catalog RA & dec
+def mapcoord(fil):
+    radeg, dsgn, dedeg, fovam,epoch = USNOhelper(fil)
+    name, rad, ded, rmag = usno(radeg,dedeg,fovam,epoch)
+
+    #finding ra0, dec0 - RA and DEC of center, which should be the object's coords.
+    hdr = loadfits(fil)[1]
+    #convert from time format to degrees
+    ra0deg = 15*(float(hdr['RA'][0:2]) + float(hdr['RA'][3:5])/60. + float(hdr['RA'][6:])/3600.)
+    findsign = np.sign(float(hdr['DEC'][0:2]))
+    dec0deg = float(hdr['DEC'][0:2]) + findsign*float(hdr['DEC'][3:5])/60. + findsign*float(hdr['DEC'][6:])/3600.
+    
+    #convert from degrees to radians
+    ra = np.deg2rad(rad); dec = np.deg2rad(ded)
+    ra0 = np.deg2rad(ra0deg); dec0 = np.deg2rad(dec0deg)
+
+    CCDxnum = np.cos(dec)*np.sin(ra - ra0)
+    CCDxden = np.cos(dec0)*np.cos(dec)*np.cos(ra - ra0) + np.sin(dec)*np.sin(dec0)
+    CCDynum = np.sin(dec0)*np.cos(dec)*np.cos(ra - ra0) - np.cos(dec0)*np.sin(dec)
+    CCDyden = np.cos(dec0)*np.cos(dec)*np.cos(ra - ra0) + np.sin(dec)*np.sin(dec0)
+    CCDx = -(CCDxnum/CCDxden)
+    CCDy = -(CCDynum/CCDyden)
+
+    f = 16840 #focal length in mm, from handout, what's our focal length?
+    p = 0.015 #pixel size in mm, NOTE: DOES NOT ACCOUNT FOR X2 BINNING
+    littlex0 = 512; littley0 = 512 # center on CCD (total 1024 pixels)
+    
+    littlex = f*(CCDx/(p*2))+littlex0
+    littley = f*(CCDy/(p*2))+littley0
+    return littlex, littley
+
+def USNO_CCD(fil): 
+    """ Plots the corrected image, with the centroids on top AND with the USNO catalog of stars
+        Includes annotations
+        Returns:
+            the figure
+            the x and y values from the USNO catalog
+            the x and y values from the CCD/Centroids"""   
+    radeg, dsgn, dedeg, fovam,epoch = USNOhelper(fil)
+    name, rad, ded, rmag = usno(radeg,dedeg,fovam,epoch)
+    hdr = loadfits(fil)[1]
+    
+    y_cenvals, x_cenvals = centroid(fil) # centroids_x (y_cenvals) ~ cols (correlate w y), centroids_y (x_cenvals)~ rows (correlate with x)
+    
+    littlex, littley = mapcoord(fil)
+    w = np.where(rmag <18.)[0]
+    x_usnovals = littlex[w] # -108 
+    y_usnovals = (1024-littley[w]) # -86
+    
+    img_c = correct_fits(fil)
+
+    fig = plt.figure()
+    plt.plot(x_usnovals, y_usnovals, 'ro', ms=6, label='USNO points')
+    plt.plot(x_cenvals, y_cenvals, 'bo', ms=6, label = 'CCD/Centroid points')
+    plt.imshow(img_c, origin='lower', interpolation='nearest', cmap='gray_r', 
+                vmin=np.median(img_c), vmax=1.28*np.median(img_c))
+    plt.locator_params(axis='x',nbins=4); plt.locator_params(axis='y',nbins=4)
+    plt.tick_params('x',pad=10) 
+    plt.xlabel('Pixel number', fontsize = 15); plt.ylabel('Pixel number', fontsize = 15)
+    plt.title('Mapped coordinates from USNO catalog, ' + hdr['OBJECT'], fontsize = 17)
+    plt.ticklabel_format(useOffset=False)
+    plt.axis('scaled')
+    plt.ylim([0,1024]); plt.xlim([0,1024])
+    plt.legend(fontsize = 12)
+    for i, txt in enumerate(range(len(x_usnovals))):
+        plt.annotate(txt, (x_usnovals[i],y_usnovals[i]), fontsize = 15, color = 'r')
+    for i, txt in enumerate(range(len(y_cenvals))):
+        plt.annotate(txt, (x_cenvals[i],y_cenvals[i]), fontsize = 15, color = 'b')
+    return [fig, x_usnovals, y_usnovals, x_cenvals, y_cenvals]
+
+USNO_CCD_info = USNO_CCD(DanaeI_file_arr[-1])
+plt.show(USNO_CCD_info[0])
+
+#==================================
+#MATCHING THE COORDINATES
+#==================================
+USNOx = USNO_CCD_info[1] #USNO x
+USNOy = USNO_CCD_info[2] #USNO y
+CCDx = USNO_CCD_info[3] #CCD x
+CCDy = USNO_CCD_info[4] #CCD y
+
+#for index, elem in enumerate(USNOx):
+#    print "USNOx", index, elem
+#for index, elem in enumerate(USNOy):
+#    print "USNOy", index, elem
+#for index, elem in enumerate(CCDx):
+#    print "CCDx", index, elem
+#for index, elem in enumerate(CCDy):
+#    print "CCDy", index, elem
+    
+#==================================
+# Choosing which points to fit
+#==================================
+def point_chooser():
+    chosenpoints_arr =[] 
+    # each element of this array is a pair of points (shown in next line)
+    # [CCD point, USNO point] -- these "points" correspond to the annotated indexes 
+    # that the plot in USNO_CCD(fil)[0] illustrates 
+    # when this fn is called, the user is asked to input the CCD, or USNO, point
+    print '**********************************************'
+    print 'Correlate points with eachother'
+    print 'First number is the CCD/centroid number (blue)'
+    print 'Second number is the USNO number (red)'
+    print 'When you have no more correlations, input \'done\' in lowercase to finish.'
+    
+    x = raw_input('Input CCD: ')
+    temp_arr = []
+    while x != 'done':
+        #assume that only numbers or 'done' are inputted -- sort of crashes otherwise
+        temp_arr.append(int(x))
+        if len(temp_arr) == 2:
+            chosenpoints_arr.append(temp_arr)
+            temp_arr =[]
+            x = raw_input('Input CCD: ')
+        else:
+            x = raw_input('Input USNO: ')
+    return chosenpoints_arr
+    
+chosenpoints_arr = point_chooser()
+print chosenpoints_arr
+
+chosen_centroids_indexes = np.transpose(chosenpoints_arr)[0] # to get the indexes for the CCD points
+chosen_usno_indexes = np.transpose(chosenpoints_arr)[1]      # to get the indexes for the USNO points
+
+chosen_ccdx = CCDx[chosen_centroids_indexes] # apply the indexes above 
+chosen_ccdy = CCDy[chosen_centroids_indexes]
+chosen_usnox = USNOx[chosen_usno_indexes]
+chosen_usnoy = USNOy[chosen_usno_indexes]
+
+origx = np.array(chosen_usnox)-512 #not quite sure why we have to subtract 512, but it works when we do
+origy = np.array(chosen_usnoy)-512
+
+def fullfit(ccdx, ccdy, origx, origy):
+    fp = 16840./(2*.015)
+    fovx = origx; fovy = origy
+    ax = np.transpose(np.matrix(ccdx))
+    Bx = np.transpose(np.matrix([fovx,fovy,np.ones(len(fovx))]))
+    Btransposex = np.transpose(Bx)
+    btbx = Btransposex*Bx
+    pseudoinvx = np.linalg.inv(btbx)
+    cx = pseudoinvx*Btransposex*ax
+
+    ay = np.transpose(np.matrix(ccdy))
+    By = np.transpose(np.matrix([fovx,fovy,np.ones(len(fovy))]))
+    Btransposey= np.transpose(By)
+    btby = Btransposey*By
+    pseudoinvy = np.linalg.inv(btby)
+    cy = pseudoinvy*Btransposey*ay
+    
+    chisqx = np.transpose(ax - Bx*cx) * (ax - Bx*cx)
+    chisqy = np.transpose(ay - By*cy) * (ay - By*cy)
+
+    cfitx = np.linalg.inv((np.transpose(Bx))*Bx)*(np.transpose(Bx)*ax)
+    cfity = np.linalg.inv((np.transpose(By))*By)*(np.transpose(By)*ay)
+    a11 = float(cx[0]); a12 = float(cx[1]); x0 = float(cx[2])
+    a21 = float(cy[0]); a22 = float(cy[1]); y0 = float(cy[2])
+    return a11, a12, x0, a21, a22, y0
+
+def plotfinalfit():
+    a11, a12, x0, a21, a22, y0 = fullfit(chosen_ccdx,chosen_ccdy,origx,origy)
+    #fp = 16840./(2*.015) #not using this, using 1, otherwise accounts for it twice
+    finalxarr, finalyarr = [], []
+    k = 0
+    while k < len(chosen_ccdx):
+        finalxarr.append(1*(a11*origx[k] + a12*origy[k] + x0))
+        finalyarr.append(1*(a21*origx[k] + a22*origy[k] + y0))
+        k+=1
+    fig = plt.figure() 
+    plt.plot(finalxarr, finalyarr, 'ko', ms = 4, label = 'Fitted USNO values')
+    plt.plot(chosen_ccdx, chosen_ccdy,'rx', ms = 10, label = 'CCD values')
+    plt.xlim([0,1024]); plt.ylim([0,1024])
+    plt.title('Final fit for USNO and CCD centroids', fontsize = 18)
+    #plt.ylabel('Pixel number')
+    #plt.xlabel('Pixel number')
+    plt.legend()
+    return fig, finalxarr, finalyarr
+
+plt.show(plotfinalfit()[0])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def linleastsquares(data, poly):
+    """
+    data: [x,y] what you are trying to fit
+    poly: the number of terms you want i.e. poly = 3 --> ax**2 + bx + c
+    """
+    sum_x_arr = [np.sum(data[0]**i) for i in np.arange(1,(poly-1)*2+1)]
+    sum_xy_arr = [np.sum(data[0]**i * data[1]) for i in np.arange(0, poly)]
+    
+    left = [[None for i in range(poly)] for j in range(poly)]
+    right = [[i] for i in sum_xy_arr]
+    for i in range(poly):
+        for j in range(poly):
+            if i == 0 and j == 0:
+                left[i][j] = len(data[0])
+            else:
+                left[i][j] = sum_x_arr[i+j-1]
+    inv_left = np.linalg.inv(left)
+    final = np.dot(inv_left,right)
+    return final
+    
+
+
+

@@ -677,22 +677,11 @@ USNO_CCD_info = USNO_CCD(DanaeI_file_arr[-1])
 plt.show(USNO_CCD_info[0])
 
 #==================================
+#==================================
 #MATCHING THE COORDINATES
 #==================================
-USNOx = USNO_CCD_info[1] #USNO x
-USNOy = USNO_CCD_info[2] #USNO y
-CCDx = USNO_CCD_info[3] #CCD x
-CCDy = USNO_CCD_info[4] #CCD y
+#==================================
 
-#for index, elem in enumerate(USNOx):
-#    print "USNOx", index, elem
-#for index, elem in enumerate(USNOy):
-#    print "USNOy", index, elem
-#for index, elem in enumerate(CCDx):
-#    print "CCDx", index, elem
-#for index, elem in enumerate(CCDy):
-#    print "CCDy", index, elem
-    
 #==================================
 # Choosing which points to fit
 #==================================
@@ -721,31 +710,37 @@ def point_chooser():
             x = raw_input('Input USNO: ')
     return chosenpoints_arr
     
-chosenpoints_arr = point_chooser()
-print chosenpoints_arr
 
-chosen_centroids_indexes = np.transpose(chosenpoints_arr)[0] # to get the indexes for the CCD points
-chosen_usno_indexes = np.transpose(chosenpoints_arr)[1]      # to get the indexes for the USNO points
+def fullfit(fil):
+    USNO_CCD_info = USNO_CCD(fil)
+    USNOx = USNO_CCD_info[1] #USNO x
+    USNOy = USNO_CCD_info[2] #USNO y
+    CCDx = USNO_CCD_info[3] #CCD x
+    CCDy = USNO_CCD_info[4] #CCD y
 
-chosen_ccdx = CCDx[chosen_centroids_indexes] # apply the indexes above 
-chosen_ccdy = CCDy[chosen_centroids_indexes]
-chosen_usnox = USNOx[chosen_usno_indexes]
-chosen_usnoy = USNOy[chosen_usno_indexes]
+    chosenpoints_arr = point_chooser()
+    print chosenpoints_arr
 
-origx = np.array(chosen_usnox)-512 #not quite sure why we have to subtract 512, but it works when we do
-origy = np.array(chosen_usnoy)-512
+    chosen_centroids_indexes = np.transpose(chosenpoints_arr)[0] # to get the indexes for the CCD points
+    chosen_usno_indexes = np.transpose(chosenpoints_arr)[1]      # to get the indexes for the USNO points
 
-def fullfit(ccdx, ccdy, origx, origy):
+    chosen_ccdx = CCDx[chosen_centroids_indexes] # apply the indexes above 
+    chosen_ccdy = CCDy[chosen_centroids_indexes]
+    chosen_usnox = USNOx[chosen_usno_indexes]
+    chosen_usnoy = USNOy[chosen_usno_indexes]
+
+    origx = np.array(chosen_usnox)-512 #not quite sure why we have to subtract 512, but it works when we do
+    origy = np.array(chosen_usnoy)-512
     fp = 16840./(2*.015)
     fovx = origx; fovy = origy
-    ax = np.transpose(np.matrix(ccdx))
+    ax = np.transpose(np.matrix(chosen_ccdx))
     Bx = np.transpose(np.matrix([fovx,fovy,np.ones(len(fovx))]))
     Btransposex = np.transpose(Bx)
     btbx = Btransposex*Bx
     pseudoinvx = np.linalg.inv(btbx)
     cx = pseudoinvx*Btransposex*ax
 
-    ay = np.transpose(np.matrix(ccdy))
+    ay = np.transpose(np.matrix(chosen_ccdy))
     By = np.transpose(np.matrix([fovx,fovy,np.ones(len(fovy))]))
     Btransposey= np.transpose(By)
     btby = Btransposey*By
@@ -759,14 +754,14 @@ def fullfit(ccdx, ccdy, origx, origy):
     cfity = np.linalg.inv((np.transpose(By))*By)*(np.transpose(By)*ay)
     a11 = float(cx[0]); a12 = float(cx[1]); x0 = float(cx[2])
     a21 = float(cy[0]); a22 = float(cy[1]); y0 = float(cy[2])
-    return a11, a12, x0, a21, a22, y0
+    return a11, a12, x0, a21, a22, y0, chosen_ccdx, chosen_ccdy, origx, origy
 
-def plotfinalfit():
-    a11, a12, x0, a21, a22, y0 = fullfit(chosen_ccdx,chosen_ccdy,origx,origy)
+def plotfinalfit(fil):
+    a11, a12, x0, a21, a22, y0, chosen_ccdx, chosen_ccdy, origx, origy = fullfit(fil)
     #fp = 16840./(2*.015) #not using this, using 1, otherwise accounts for it twice
     finalxarr, finalyarr = [], []
     k = 0
-    while k < len(chosen_ccdx):
+    while k < len(origx):
         finalxarr.append(1*(a11*origx[k] + a12*origy[k] + x0))
         finalyarr.append(1*(a21*origx[k] + a22*origy[k] + y0))
         k+=1
@@ -780,57 +775,4 @@ def plotfinalfit():
     plt.legend()
     return fig, finalxarr, finalyarr
 
-plt.show(plotfinalfit()[0])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def linleastsquares(data, poly):
-    """
-    data: [x,y] what you are trying to fit
-    poly: the number of terms you want i.e. poly = 3 --> ax**2 + bx + c
-    """
-    sum_x_arr = [np.sum(data[0]**i) for i in np.arange(1,(poly-1)*2+1)]
-    sum_xy_arr = [np.sum(data[0]**i * data[1]) for i in np.arange(0, poly)]
-    
-    left = [[None for i in range(poly)] for j in range(poly)]
-    right = [[i] for i in sum_xy_arr]
-    for i in range(poly):
-        for j in range(poly):
-            if i == 0 and j == 0:
-                left[i][j] = len(data[0])
-            else:
-                left[i][j] = sum_x_arr[i+j-1]
-    inv_left = np.linalg.inv(left)
-    final = np.dot(inv_left,right)
-    return final
-    
-
-
-
+plt.show(plotfinalfit(DanaeI_file_arr[-1])[0])

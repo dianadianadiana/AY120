@@ -8,6 +8,7 @@ import matplotlib
 import matplotlib.colors as col
 import astropy.io.fits as pf
 import glob
+import math
 #import os #it tries to be IDL's SPAWN and falls short but it still useful
 import datetime as dt
 #==================================
@@ -201,6 +202,7 @@ def get_gain(hdr):
 # Bias 
 #==================================
 def get_bias(hdr):
+    """  returns the bias (corrected for pixel and 1024x1024) depending on the day """
     day = hdr['DATE-BEG'][8:10]
     if day == '14': index = 0 #for day 10 / 13 / 15
     elif day == '20': index = 1 #for day 10 / 19 / 15
@@ -236,6 +238,7 @@ def get_bias(hdr):
 
 #==================================
 def display_info(fil, display = False):
+    """ fn that just outputs all the info on a file that may be useful """
     info = loadfits(fil)
     img, hdr = info[0], info[1]
     print "Getting info for", hdr['object']
@@ -265,31 +268,17 @@ def display_info(fil, display = False):
 #==================================    
 def correct_fits(fil):
     """Returns the corrected image"""
-    #day = fil[-12:-10]
     img, hdr = loadfits(fil) # img is corrected for deadpixels and [1024,1024]
     return (img - get_bias(hdr)) * get_gain(hdr)
 def normalize_img(img):
     return img / np.median(img)
     
-def display_fits(fil):
-    """Display fits using matplotlib"""    
-    img, hdr = loadfits(fil)
-    img = correct_fits(fil)
-    img = normalize_img(img)
-    fig = plt.figure()
-    plt.title(hdr['object'], fontsize=18)
-    plt.imshow(img, origin='lower', interpolation='nearest', cmap='gray_r', 
-               vmin=0.95*np.median(img), vmax=1.7*np.median(img))
-    plt.colorbar()
-    return fig
-def display_fits2(fil):
-    """Display fits using matplotlib"""    
-    img, hdr = loadfits(fil)
-    #img = normalize_img(img)
+def display_fits_raw_c(fil):
+    """ Display raw and corrected FITS file """    
+    hdr = loadfits(fil)[1]
     img = pf.open(fil)[0].data
     img = normalize_img(img)
-    img_c = correct_fits(fil)
-    img_c = normalize_img(img_c)
+    img_c = normalize_img(correct_fits(fil))
     
     fig = plt.figure(figsize = (12,5))
     fig.suptitle(hdr['object'] + ', Filter: ' + hdr['filtnam'], fontsize = 20)
@@ -303,45 +292,11 @@ def display_fits2(fil):
     ax1.set_xlabel('Pixel', fontsize = 18)
     cax1 = ax1.imshow(img_c,cmap='gray_r',origin='lower',vmin=.8,vmax=1.8)
     fig.colorbar(cax1, fraction=0.046, pad=0.04)
-
-    #plt.show()
-    #plt.tight_layout()
     return fig
 
-
-#plt.show(display_fits(DanaeR_file_arr[5]))
-#plt.show(display_fits2(DanaeI_file_arr[1]))
-#display_fits2(DanaeI_file_arr[1]).savefig(fig_path+'DanaeI_1_rawvscorrect.png',dpi=300)
-#display_fits(DanaeR_file_arr[5]).savefig(fig_path+'DanaeR_5_corrected.png',dpi=300)
-def display_diff_filters(fil, fil1):
-    """Display fits using matplotlib"""    
-    img_c = correct_fits(fil)
-    img_c1 = correct_fits(fil1)
-    img_c = normalize_img(img_c)    
-    img_c1 = normalize_img(img_c1)
-    hdr = pf.open(fil)[0].header
-    hdr1 = pf.open(fil1)[0].header
-    fig = plt.figure()
-    ax = fig.add_subplot(121)
-    ax.set_title(hdr['object'] + ', filter: ' + hdr['filtnam'])
-    cax = ax.imshow(img_c,cmap='gray_r',origin='lower',vmin=0.8,vmax=1.8)
-    fig.colorbar(cax, fraction=0.046, pad=0.04)
-    
-    ax1 = fig.add_subplot(122)
-    ax1.set_title(hdr1['object'] + ', filter: ' + hdr1['filtnam'])
-    cax1 = ax1.imshow(img_c1,cmap='gray_r',origin='lower',vmin=.8,vmax=1.8)
-    fig.colorbar(cax1, fraction=0.046, pad=0.04)
-    plt.tight_layout()
-
-    #this is the SHARED x axis label
-    #fig.text(0.5, 0.1, 'Pixel number', fontsize = 17, ha='center', va='center', rotation='horizontal')
-
-    return fig
-#plt.show(display_diff_filters(DanaeR_file_arr[5], DanaeI_file_arr[5]))
-#plt.show(display_diff_filters(WratR_file_arr[5], WratI_file_arr[5]))
-#plt.show(display_diff_filters(AlineR_file_arr[5], AlineI_file_arr[5]))
 
 def display_all(fil):
+    """ displays bias, flat, raw, AND corrected """
     hdr = loadfits(fil)[1]
 
     ### finding the flat
@@ -372,6 +327,7 @@ def display_all(fil):
     
     fig = plt.figure(figsize = (10,10))
     fig.suptitle(hdr['object'], fontsize = 20)
+    
     # bias
     ax = fig.add_subplot(221)
     ax.set_title('Bias', fontsize = 18)
@@ -396,7 +352,7 @@ def display_all(fil):
     cax3 = ax3.imshow(img_correct,cmap='gray_r',origin='lower',vmin=.8,vmax=2.5)
     fig.colorbar(cax3, fraction=0.046, pad=0.04)
     
-    #one big plot
+    #one big plot colorbar
     #fig.subplots_adjust(right=0.85)
     #cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
     #fig.colorbar(cax, cax=cbar_ax)
@@ -411,7 +367,7 @@ def display_all(fil):
 
 #==================================
 #==================================
-# Centroids
+#=========== Centroids ============
 #==================================
 #==================================
 def max_peaks(arr, width, lower_limit):
@@ -559,8 +515,6 @@ def centroid(fil):
     centroids =[]
     img = correct_fits(fil)
     peaks = find_peaks(fil) # find the peaks, elem of peaks is [[x,y],size]
-    #for peak in peaks:
-    #    print peak
     print 'Calculating the centroids for', pf.open(fil)[0].header['object']
     for pair, size in peaks:
         x_lower = 0 if pair[0]-size <= 0 else pair[0]-size
@@ -600,77 +554,65 @@ def centroid(fil):
     return centroids_x, centroids_y  # centroids_x ~ cols, centroids_y ~ rows, so when plotting in plt, 
     # need to plot plt.plot(centroids_y, centroids_x) - i think i just switched them along the way
         
-        
-def display_fits_w_centroids(fil):
-    """Display fits using matplotlib"""    
-    hdr = loadfits(fil)[1]
-    img = correct_fits(fil)
-    img = img/np.mean(img)
-    centroids_x, centroids_y = centroid(fil) # centroids_x ~ cols, centroids_y ~ rows
+def display_corrected_fits(fil, bool_centroids = False):
+    """ Display fits with centroids (if bool_centroids is true)"""    
+    hdr = pf.open(fil)[0].header
+    img = normalize_img(correct_fits(fil))
     fig = plt.figure()
     plt.title(hdr['object']+ ', Filter: ' + hdr['filtnam'] + '\n# of centroids: ' + str(len(centroids_x)), fontsize=18)
-    plt.scatter(centroids_y, centroids_x, marker='x',s=100)
     plt.imshow(img, origin='lower', interpolation='nearest', cmap='gray_r', 
-               vmin=0.95*np.median(img), vmax=2*np.median(img))
-               
+               vmin=0.95*np.median(img), vmax=1.7*np.median(img))  
+    if bool_centroids:
+        centroids_x, centroids_y = centroid(fil) # centroids_x ~ cols, centroids_y ~ rows
+        #plt.scatter(centroids_y, centroids_x, marker='x',s=100) #x's
+        plt.scatter(centroids_y, centroids_x, s=150, facecolors='none', edgecolors='b') #circles
     plt.colorbar()
-    return fig   
-    
-#plt.show(display_fits(GiselaI_file_arr[5]))
-#plt.show(display_fits_w_centroids(GiselaI_file_arr2[0]))
-#plt.show(display_fits_w_centroids(WratI_file_arr[5]))
-#plt.show(display_fits_w_centroids(WratR_file_arr1[5]))
-#plt.show(display_fits_w_centroids(WratR_file_arr2[5]))
+    return fig  
 
-#plt.show(display_fits_w_centroids(WratR_file_arr1[5]))
-#plt.show(display_fits_w_centroids(DanaeR_file_arr[5])) #stil has two objects w two centroids... ugh
-#plt.show(display_fits_w_centroids(DanaeI_file_arr[5]))
-#plt.show(display_fits_w_centroids(AlineI_file_arr1[0]))
-#plt.show(display_fits_w_centroids(AlineI_file_arr[0]))
-#plt.show(display_fits_w_centroids(AlineI_file_arr2[0]))
-#plt.show(display_fits_w_centroids(GiselaR_file_arr[5])) ## need 2.5avg
-#plt.show(display_fits_w_centroids(GiselaI_file_arr[5]))
-#plt.show(display_fits_w_centroids(GiselaI_file_arr1[5]))
-#plt.show(display_fits_w_centroids(GiselaI_file_arr2[5]))
 
-#plt.show(display_fits_w_centroids(GalateaR_file_arr[5])) 
-#plt.show(display_fits_w_centroids(GalateaI_file_arr[5]))
-
-def display_fits_w_centroids_2filters(fil, fil1):
-    """Display fits using matplotlib"""    
-    hdr = loadfits(fil)[1]
-    hdr1 = loadfits(fil1)[1]
-    img = correct_fits(fil)
-    img = normalize_img(img)
-    img1 = correct_fits(fil1)
-    img1 = normalize_img(img1)
-    centroids_x, centroids_y = centroid(fil) # centroids_x ~ cols, centroids_y ~ rows
-    centroids_x1, centroids_y1 = centroid(fil1)
+def display_corrected_fits2(fil, fil1, bool_centroids = False, bool_centroids1 = False):
+    """Display 2 fits files with their centroids on the same figure"""    
+    hdr, hdr1 = pf.open(fil)[0].header, pf.open(fil1)[0].header
+    img, img1 = normalize_img(correct_fits(fil)), normalize_img(correct_fits(fil1)) # normalize and correct images
     
     fig = plt.figure(figsize = (12,5))    
-    fig.suptitle(hdr['object'], fontsize = 20)
 
-    #first filter
+    #first image
     ax = fig.add_subplot(121)
-    ax.set_title('Filter: ' + hdr['filtnam'] + '\n# of centroids: ' + str(len(centroids_x)), fontsize=18)
-    ax.scatter(centroids_y, centroids_x, marker='x',s=100)
+    ax.set_title(hdr['object'] + ' Filter: ' + hdr['filtnam'] + '\n# of centroids: ' + str(len(centroids_x)), fontsize=18)
     ax.set_xlabel('Pixel'); ax.set_ylabel('Pixel')
     cax = ax.imshow(img,cmap='gray_r',origin='lower',vmin=.8,vmax=1.8)
     fig.colorbar(cax, fraction=0.046, pad=0.04)
+    if bool_centroids:
+        centroids_x, centroids_y = centroid(fil) # centroids_x ~ cols, centroids_y ~ rows
+        #ax.scatter(centroids_y, centroids_x, marker='x',s=100) #x's
+        ax.scatter(centroids_y, centroids_x, s=170, facecolors='none', edgecolors='b') #circles
     
-    #second filter
+    #second image
     ax1 = fig.add_subplot(122)
-    ax1.set_title('Filter: ' + hdr1['filtnam'] + '\n# of centroids: ' + str(len(centroids_x1)), fontsize=18)
-    ax1.scatter(centroids_y1, centroids_x1, marker='x',s=100)
+    ax1.set_title(hdr1['object'] + ' Filter: ' + hdr1['filtnam'] + '\n# of centroids: ' + str(len(centroids_x1)), fontsize=18)
     ax1.set_xlabel('Pixel')
     cax1 = ax1.imshow(img1,cmap='gray_r',origin='lower',vmin=.8,vmax=1.8)
     fig.colorbar(cax1, fraction=0.046, pad=0.04)
+    if bool_centroids1:
+        centroids_x1, centroids_y1 = centroid(fil1) # centroids_x ~ cols, centroids_y ~ rows
+        #ax1.scatter(centroids_y1, centroids_x1, marker='x',s=100) #x's
+        ax1.scatter(centroids_y1, centroids_x1, s=170, facecolors='none', edgecolors='b') #circles
     
     return fig  
-    
-#plt.show(display_fits_w_centroids_2filters(WratR_file_arr[5],WratI_file_arr[5]))
+        
+#plt.show(display_corrected_fits(GiselaI_file_arr[5]))
+#plt.show(display_corrected_fits2(DanaeI_file_arr[5],DanaeI_file_arr1[5]))
 #==================================
 #==================================
+
+
+
+
+
+
+
+
 
 #==================================
 #==================================
@@ -738,7 +680,7 @@ def plotUSNO(fil):
     #print 'rad', rad
     #print 'ded', ded
     #print 'rmag', rmag
-    
+    hdr = loadfits(fil)[1]
     w = np.where(rmag <18.)[0]
     fig = plt.figure()
     plt.plot(rad[w],ded[w],'g.')
@@ -750,7 +692,37 @@ def plotUSNO(fil):
     plt.gca().invert_xaxis()
     return fig
 
-#plt.show(plotUSNO(DanaeI_file_arr1[5]))
+#plt.show(plotUSNO(DanaeI_file_arr[5]))
+
+def plotUSNO2(fil,fil1):
+    """ This function just plots the USNO catalog of stars, given a fits file"""
+    radeg, dsgn, dedeg, fovam, epoch = USNOhelper(fil)
+    name, rad, ded, rmag = usno(radeg,dedeg,fovam,epoch)
+    radeg1, dsgn1, dedeg1, fovam1, epoch1 = USNOhelper(fil1)
+    name1, rad1, ded1, rmag1 = usno(radeg1,dedeg1,fovam1,epoch1)
+
+    w = np.where(rmag <18.)[0]
+    fig = plt.figure(figsize=(12,5))
+    ax = fig.add_subplot(121)
+    ax.plot(rad[w],ded[w],'g.')
+    ax.locator_params(axis='x',nbins=4); ax.locator_params(axis='y',nbins=4)
+    ax.tick_params('x',pad=10)
+    ax.set_xlabel('RA [Deg]'); ax.set_ylabel('Dec [Deg]')
+    ax.ticklabel_format(useOffset=False)
+    ax.axis('scaled')
+    plt.gca().invert_xaxis()
+    
+    w1 = np.where(rmag1 <18.)[0]
+    ax1 = fig.add_subplot(122)
+    ax1.plot(rad1[w1],ded1[w1],'g.')
+    ax1.locator_params(axis='x',nbins=4); ax1.locator_params(axis='y',nbins=4)
+    ax1.tick_params('x',pad=10)
+    ax1.set_xlabel('RA [Deg]'); ax1.set_ylabel('Dec [Deg]')
+    ax1.ticklabel_format(useOffset=False)
+    ax1.axis('scaled')
+    plt.gca().invert_xaxis()
+    return fig
+plt.show(plotUSNO2(DanaeI_file_arr[5], DanaeI_file_arr1[5]))
 
 ###################### MELS CODE for mapcoord ########################
 #catalog RA & dec
@@ -829,7 +801,7 @@ def USNO_CCD(fil):
 #plt.show(USNO_CCD_info[0])
 
 def USNO_CCD_display(fil):
-    USNO_CCD_info = USNO_CCD(DanaeI_file_arr[-1])
+    USNO_CCD_info = USNO_CCD(fil)
     x_usnovals = USNO_CCD_info[1]; y_usnovals = USNO_CCD_info[2] 
     x_cenvals = USNO_CCD_info[3];  y_cenvals = USNO_CCD_info[4]
     img_c = correct_fits(fil)
@@ -854,6 +826,35 @@ def USNO_CCD_display(fil):
         plt.annotate(txt, (x_cenvals[i],y_cenvals[i]), fontsize = 12, color = 'b')
     return fig
 
+
+#plt.show(USNO_CCD_display(DanaeI_file_arr[5]))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #==================================
 #==================================
 #MATCHING THE COORDINATES
@@ -864,17 +865,25 @@ def USNO_CCD_display(fil):
 # Choosing which points to fit
 #==================================
 def point_chooser():
-    chosenpoints_arr =[] 
-    # each element of this array is a pair of points (shown in next line)
-    # [CCD point, USNO point] -- these "points" correspond to the annotated indexes 
-    # that the plot in USNO_CCD(fil)[0] illustrates 
-    # when this fn is called, the user is asked to input the CCD, or USNO, point
+    """
+    Purpose: To be able to visually match the CCD centroids with the USNO objects 
+            (this is a semi-automatic/semi-manual process)
+            Once you input all the information, the program automatically makes 
+            it into a list to be used later on in determining which centroids and 
+            USNO objects will be used for the LLS
+    Input: the fn prompts the user to input the number for the CCD centroids and 
+            the USNO object. 
+    Output: 
+            chosenpoints_arr - a list of pairs of indices, ex. [[0,5], [5,3]] CCD[0] 
+                correlates w USNO[5] and CCD[5] w USNO[3]. the points/indices 
+                correspond to the annotated indices from the plot in USNO_CCD(fil)[0] 
+    """
     print '**********************************************'
     print 'Correlate points with eachother'
     print 'First number is the CCD/centroid number (blue)'
     print 'Second number is the USNO number (red)'
     print 'When you have no more correlations, input \'done\' in lowercase to finish.'
-    
+    chosenpoints_arr =[] 
     x = raw_input('Input CCD: ')
     temp_arr = []
     while x != 'done':
@@ -887,9 +896,21 @@ def point_chooser():
         else:
             x = raw_input('Input USNO: ')
     return chosenpoints_arr
-    
 
 def fullfit(fil, chosenpoints_arr = []):
+    """
+    Purpose: To obtain a general Least Squares fit for USNO catalog and CCD centroids
+    Input:
+        fil - the filename
+        chosenpoints_arr - the array of the points we end up considering for the star matching
+                            if [], then the user will be asked to input this arr
+    Output: [a11, a12, x0, a21, a22, y0, T_fp, T, chosen_ccdx, chosen_ccdy, origx, origy]
+        a11, a12, x0, a21, a22, y0 - the plate constants
+        T_fp, T - the T matrix, with and without fp
+        chosen_ccdx, chosen_ccdy - the x and y pixels of the CCD centroids that we matched
+        origx, origy - the x and y pixels of the USNO objects that we matched
+    """
+    print 'Calling fullfit on', pf.open(fil)[0].header['OBJECT']
     USNO_CCD_info = USNO_CCD(fil)
     plt.show(USNO_CCD_info[0]) # so we can match the points visually
     USNOx = USNO_CCD_info[1] # all USNO x values
@@ -899,7 +920,7 @@ def fullfit(fil, chosenpoints_arr = []):
     
     if not chosenpoints_arr:
         chosenpoints_arr = point_chooser() #choose the points we want to fit (visually/manually)
-        print chosenpoints_arr
+        print chosenpoints_arr # so we can copy and paste if need be
     chosen_centroids_indexes = np.transpose(chosenpoints_arr)[0] # to get the indexes for the CCD points
     chosen_usno_indexes = np.transpose(chosenpoints_arr)[1]      # to get the indexes for the USNO points
 
@@ -907,9 +928,9 @@ def fullfit(fil, chosenpoints_arr = []):
     chosen_ccdy = CCDy[chosen_centroids_indexes] # to get the chosen indexes 
     chosen_usnox = USNOx[chosen_usno_indexes]
     chosen_usnoy = USNOy[chosen_usno_indexes]
-
-    origx = np.array(chosen_usnox)-512 #not quite sure why we have to subtract 512, but it works when we do
-    origy = np.array(chosen_usnoy)-512
+    origx = np.array(chosen_usnox) - 512 #not quite sure why we have to subtract 512, but it works when we do
+    origy = np.array(chosen_usnoy) - 512
+    
     fp = 16840./(2*.015) #f/2p
     fovx = origx; fovy = origy
     ax = np.transpose(np.matrix(chosen_ccdx))
@@ -935,10 +956,27 @@ def fullfit(fil, chosenpoints_arr = []):
     a21 = float(cy[0]); a22 = float(cy[1]); y0 = float(cy[2])
     T_fp = [[fp*a11,fp*a12,x0],[fp*a21,fp*a22,y0],[0,0,1]]
     T = [[a11,a12,x0],[a21,a22,y0],[0,0,1]]
-
+    print 'T', T
+    print 'T_fp', T_fp
+    print 'sq of det of T', np.sqrt(np.linalg.det(T))
+    print 'sq of det of T_fp', np.sqrt(np.linalg.det(T_fp))
     return [a11, a12, x0, a21, a22, y0, T_fp, T, chosen_ccdx, chosen_ccdy, origx, origy]
 
 def plotfinalfit_res(fil, chosenpoints_arr=[]):
+    """
+    Purpose: plot the results of using a general LLS, and plot the residuals of it
+    Input:
+        fil - name of file
+        chosenpoints_arr - the array of the points we end up considering for the star matching
+                            if [], then the user will be asked to input this arr
+    Output:
+        fig_fit - the fitted figure
+        fig_residuals - the figure with all the residuals
+        finalxarr/finalyarr - the fitting of the USNO values on our CCD
+        resx/resy - the residuals for our fit, in x and y
+        rmsx/rmsy - the rms for x and y
+        fig3 - the combined fig_fit and fig_residuals
+    """
     a11, a12, x0, a21, a22, y0, T_fp, T, chosen_ccdx, chosen_ccdy, origx, origy = fullfit(fil,chosenpoints_arr)
     #fp = 16840./(2*.015) #not using this, using 1, otherwise accounts for it twice
     finalxarr, finalyarr = [], [] # fitting the USNO values to fit with our CCD values
@@ -947,80 +985,80 @@ def plotfinalfit_res(fil, chosenpoints_arr=[]):
         finalxarr.append(1*(a11*origx[k] + a12*origy[k] + x0))
         finalyarr.append(1*(a21*origx[k] + a22*origy[k] + y0))
         k+=1
+    # First figure is the fitted plot (pixel vs pixel)
     fig_fit = plt.figure() 
     plt.plot(finalxarr, finalyarr, 'ko', ms = 4, label = 'Fitted USNO values')
     plt.plot(chosen_ccdx, chosen_ccdy,'rx', ms = 10, label = 'CCD values')
     plt.xlim([0,1024]); plt.ylim([0,1024])
     plt.title('Final fit for USNO and CCD centroids', fontsize = 18)
-    #plt.ylabel('Pixel number')
-    #plt.xlabel('Pixel number')
     plt.legend()
     
-    #### residuals
+    # residuals
     resx = chosen_ccdx - finalxarr
     resy = chosen_ccdy - finalyarr
     rms_x = np.sqrt(np.mean(resx**2))
     rms_y = np.sqrt(np.mean(resy**2))
     
-    fig_residuals = plt.figure()
+    # Second figure is the residuals plot
+    fig_residuals = plt.figure(figsize=(12,5))
     plt.plot(chosen_ccdx,resx,'r^', ms = 6, label = 'x')
     plt.plot(chosen_ccdy,resy,'bo', ms = 6, label = 'y')
     plt.title('Residuals for USNO catalog and CCD values, ' + str(len(resx)) + ' points', fontsize = 18)
     plt.ylabel('Pixel offset', fontsize = 16)
-    plt.xlabel('Pixel number, either x or y', fontsize = 16)
+    plt.xlabel('Pixel, either x or y', fontsize = 16)
     plt.xlim([0,1024]); #plt.ylim([-2,2])
     plt.axhline(y=0, color='k', ls='--')
     plt.legend()
-    return fig_fit, fig_residuals, finalxarr, finalyarr, resx, resy, rms_x, rms_y
-#plt.show(USNO_CCD(GalateaI_file_arr[-1])[0])
-
-'''
-#### to find loc of asteroid ###
-def pixels_to_ra_dec(fil, index, chosenpoints_arr = []):
-    T_fp, T, chosen_ccdx, chosen_ccdy = fullfit(fil, chosenpoints_arr)[6:10]
-    x, y = chosen_ccdx[index], chosen_ccdy[index]
-    print '****T', T
-    print'****f/p, the sqrt of det of T_fp =', np.sqrt(np.linalg.det(T_fp))
-
-    radeg, dsgn, dedeg, fovam,epoch = USNOhelper(fil)
-    name, rad, ded, rmag = usno(radeg,dedeg,fovam,epoch)
-    trans = np.linalg.inv(T)*np.transpose(np.matrix([x,y,1]))
-    x1, y1 = trans[0], trans[1]
-    dec =np.arcsin((np.sin(dedeg)+y1*np.cos(dedeg))/np.sqrt(1+x1**2+y1**2))
-    dec=np.degrees(dec)
-    a_a0 = np.arctan((x1)/(np.cos(dedeg)-y1*np.sin(dedeg)))
-    ra= float(a_a0 +radeg)
-    ra = float(np.degrees(ra))
-    return [ra,dec,x1,y1]
     
-'''
+    # third plot is both the fitted figure and the residuals figure
+    fig3 = plt.figure(figsize=(12,5))
+    fig3.suptitle("USNO vs. CCD centroids", fontsize = 20)
+    ax = fig3.add_subplot(121)
+    ax.plot(finalxarr, finalyarr, 'ko', ms = 4, label = 'Fitted USNO values')
+    ax.plot(chosen_ccdx, chosen_ccdy,'rx', ms = 10, label = 'CCD values')
+    ax.set_xlim([0,1024]); ax.set_ylim([0,1024])
+    ax.set_title('Final fit', fontsize = 18)
+    ax.set_ylabel('Pixel', fontsize = 16); ax.set_xlabel('Pixel', fontsize = 16)
+    ax.legend()
+    
+    ax1 = fig3.add_subplot(122)
+    ax1.plot(chosen_ccdx,resx,'r^', ms = 6, label = 'x')
+    ax1.plot(chosen_ccdy,resy,'bo', ms = 6, label = 'y')
+    ax1.set_title('Residuals for ' + str(len(resx)) + ' points', fontsize = 18)
+    ax1.set_ylabel('Pixel offset', fontsize = 16); ax1.set_xlabel('Pixel, either x or y', fontsize = 16)
+    ax1.set_xlim([0,1024])
+    ax1.axhline(y=0, color='k', ls='--')
+    ax1.legend()
+    fig3.tight_layout()
+    
+    return fig_fit, fig_residuals, finalxarr, finalyarr, resx, resy, rms_x, rms_y, fig3
+
 def mapback(fil, index, chosenpoints_arr = []):
-    """
+    """ 
+    Purpose:
+        Find RA and DEC of the asteroid
     Input:
         fil - the filename
-        index - the index of where the asteroid is, the index is in the original centroids_x/centroids_y arr
-        chosenpoints_arr - the array of the points we do want to consider
+        index - the index of where the asteroid is: the index is in the original centroids_x/centroids_y arr
+        chosenpoints_arr - the array of the points we end up considering for the star matching
+                            (only need it since the fullfit fn is called)
     Output:
-        alpha - 
-        delta
+        alpha - RA in degrees
+        delta - DEC in degrees
     """    
-    #finding ra0, dec0 - RA and dec of center, which should be the object's coords
-    imghdr = loadfits(fil)[1]
-    #convert from time format to degrees
-    ra0deg = 15*(float(imghdr['ra'][0:2]) + float(imghdr['ra'][3:5])/60. + float(imghdr['ra'][6:])/3600.)
-    findsign = np.sign(float(imghdr['dec'][0:2]))
-    dec0deg = float(imghdr['dec'][0:2]) + findsign*float(imghdr['dec'][3:5])/60. + findsign*float(imghdr['dec'][6:])/3600.
+    hdr = loadfits(fil)[1]
+    #convert the hdr center from time format to degrees
+    ra0deg = 15*(float(hdr['ra'][0:2]) + float(hdr['ra'][3:5])/60. + float(hdr['ra'][6:])/3600.)
+    findsign = np.sign(float(hdr['dec'][0:2]))
+    dec0deg = float(hdr['dec'][0:2]) + findsign*float(hdr['dec'][3:5])/60. + findsign*float(hdr['dec'][6:])/3600.
     #convert from degrees to radians
-    ra0 = np.deg2rad(ra0deg);     dec0 = np.deg2rad(dec0deg)
+    ra0 = np.radians(ra0deg);     dec0 = np.radians(dec0deg)
     
-    T_fp, T = fullfit(fil, chosenpoints_arr)[6:8]
-    print '****T', T
-    print'****f/p, the sqrt of det of T (not T_fp) =', np.sqrt(np.linalg.det(T))
+    T_fp = fullfit(fil, chosenpoints_arr)[6] # find T_fp 
     invT_fp = np.linalg.inv(T_fp)
     x_arr, y_arr = USNO_CCD(fil)[3:5] # gets all the original x and y centroids of the CCD
     asterx = x_arr[index]     #CCD x
     astery = y_arr[index]     #CCD y
-    print asterx, astery, 'ASTEROID COORDS'
     transform = invT_fp*np.transpose(np.matrix([asterx, astery, 1]))
     bigx = transform[0]
     bigy = transform[1]
@@ -1028,12 +1066,11 @@ def mapback(fil, index, chosenpoints_arr = []):
     tanalp = np.arctan((-bigx)/(np.cos(dec0) - bigy*np.sin(dec0)))
     alpha = tanalp + ra0
     alpha = np.degrees(alpha)
-    # alpha needs to be like alpha - 7?!
+
     sindelnum = (np.sin(dec0) + bigy*np.cos(dec0))
     sindelden = (np.sqrt(1+bigx**2+bigy**2))
     delta = np.arcsin(sindelnum/sindelden)
     delta = np.degrees(delta)
-    print alpha, delta
     return alpha.item(0), delta.item(0) #some reason they are in a double matrix? # in degrees
 
 chosenpoints_arrDI = [[19, 28], [16, 29], [20, 26], [17, 25], [15, 27], [14, 15], 
@@ -1043,82 +1080,123 @@ chosenpoints_arrDI1 = [[18, 14], [17, 11], [14, 16], [9, 13], [4, 15], [2, 9], [
                         [24, 18], [21, 0], [16, 4], [15, 2], [10, 6], [8, 7], [3, 5]]
 chosenpoints_arrDI2 = [[18, 9], [19, 0], [12, 12], [15, 4], [16, 2], [17, 1], [6, 24], 
                         [0, 25], [1, 18], [4, 17], [9, 16]]
-chosenpoints_arr = chosenpoints_arrDI1
-chosen_fil = DanaeI_file_arr1[5]
-#plt.show(plotUSNO(chosen_fil))
-#final = plotfinalfit_res(chosen_fil, chosenpoints_arr)
-#plt.show(final[0])
-#plt.show(final[1])
-#print '***********',mapback(chosen_fil, 7, chosenpoints_arr)
+chosenpoints_arrAI = [[14, 19], [15, 17], [2, 3], [10, 12], [8, 11], [9, 7], 
+                        [5, 5], [3, 9], [0, 10], [4, 1], [16, 15]] # not [11,13]
+chosenpoints_arrAI1 = [[0, 5], [1, 3], [2, 0]] #not really good, residuals at 6pixels
+chosenpoints_arrAI2 = [[17,5], [9, 21], [6, 19], [0, 20], [2, 15], [16, 2], [21, 0], 
+                        [20, 1], [19, 4], [18, 3],  [8, 17]]          
+chosenpoints_arrGI = [[12, 2], [14, 4], [18, 1], [13, 0], [2, 9], [4, 8], [6, 6], 
+                        [1, 7], [8, 3], [7, 5]]
+chosenpoints_arrGI1 = [[22, 15], [23, 13], [21, 10], [20, 4], [19, 8], [16, 7],
+                        [15, 5], [13, 9], [5, 6], [6, 3]]
+chosenpoints_arrGI2 = [[9, 14], [8, 5], [7, 7], [2, 8], [5, 3], [3, 2], [0, 1],
+                        [1, 0], [12, 12], [14, 11]]
 
+#===============================================================================
+#===============================================================================
+#===============================================================================
+#=============================== PARALLAX ======================================
+#===============================================================================
+#===============================================================================
+#===============================================================================
 
-#==================================
-#==================================
-#==================================
-# PARALLAX
-#==================================
-#==================================
-#==================================
-
-#constants
+#===================== constants =====================
 m_sun = 1 # in solar masses
 G = 4*np.pi**2 # AU^3 * yr^-2 * solarmass^-1
 k = np.sqrt(G*m_sun) / 365. # AU^3/2 * days^-1
-print k
-
-
-
-#==================================
-#files
-#==================================
+#===================== files =========================
 firstfil = DanaeI_file_arr[5]
 secondfil = DanaeI_file_arr1[5]
 thirdfil = DanaeI_file_arr2[5]
-
-index1, index2, index3 = 10, 13, 7 # the indexes of where the centroid is-input this index to the centroids_x, centroids_y
-
+#firstfil = AlineI_file_arr[5]
+#secondfil = AlineI_file_arr1[5]
+#thirdfil = AlineI_file_arr2[5]
+#firstfil = GiselaI_file_arr[5]
+#secondfil = GiselaI_file_arr1[5]
+#thirdfil = GiselaI_file_arr2[5]
+#===================== setting the chosenpoint arrays ==========================
+chosenpoints_arr1 = chosenpoints_arrDI
+chosenpoints_arr2 = chosenpoints_arrDI1
+chosenpoints_arr3 = chosenpoints_arrDI2
+#============== setting the indexes of where the asteroids are =================
+index1, index2, index3 = 10, 13, 7 # DanaeI 5 the indexes of where the centroid is-input this index to the centroids_x, centroids_y
+#index1, index2, index3 = 7,3,14 # AlineI 5 the indexes of where the centroid is-input this index to the centroids_x, centroids_y
+#index1, index2, index3 = 11, 14, 6 #GiselaI 5
+# =========== finding alpha and delta of the asteroids from the three days ============
+#================ made diff variables for in RA/DEC and in radians =====================
+'''
 # the alpha and deltas for corresponding files
-alpha1, delta1 = mapback(firstfil, index1, chosenpoints_arrDI)
-alpha2, delta2 = mapback(secondfil, index2, chosenpoints_arrDI1)
-alpha3, delta3 = mapback(thirdfil, index3, chosenpoints_arrDI2)
-epsilon = np.radians(23.43929111) 
+alpha1_deg, delta1_deg = mapback(firstfil, index1, chosenpoints_arr1)
+alpha2_deg, delta2_deg = mapback(secondfil, index2, chosenpoints_arr2)
+alpha3_deg, delta3_deg = mapback(thirdfil, index3, chosenpoints_arr3)
+'''
+#Danae I 5
+alpha1_deg, delta1_deg =8.70125315478, 27.3414416801
+alpha2_deg, delta2_deg =7.21409509162, 27.1301990039
+alpha3_deg, delta3_deg  =7.00514806729, 27.082107484
 
-print "alpha and delta1", alpha1, delta1
-print "alpha and delta2", alpha2, delta2
-print "alpha and delta3", alpha3, delta3
+print '$$$$$$$$$$$$$$$$$$$$'
+print 'alpha and delta before radians'
+print 'alpha1 and delta1', alpha1_deg,  delta1_deg
+print 'alpha2 and delta2', alpha2_deg,  delta2_deg
+print 'alpha3 and delta3', alpha3_deg,  delta3_deg
 
+alpha1, delta1 = math.radians(alpha1_deg), math.radians(delta1_deg)#convert to radians
+alpha2, delta2 = math.radians(alpha2_deg), math.radians(delta2_deg)
+alpha3, delta3 = math.radians(alpha3_deg), math.radians(delta3_deg)
+print '$$$$$$$$$$$$$$$$$$$$'
+print 'alpha and delta after radians'
+print 'alpha1', alpha1
+print 'delta1', delta1
+print 'alpha2', alpha2
+print 'delta2', delta2
+print 'alpha3', alpha3
+print 'delta3', delta3
+print '$$$$$$$$$$$$$$$$$$$$'
+epsilon = np.radians(23.43929111) #based on being in the J2000 equinox
+#============ Get all the info of each file, just to display it ================
 # what display_info(fil) returns
 #return [hdr['object'], hdr['exptime'], hdr['DATE-BEG'], hdr['dec'], hdr['ra'], 
 #hdr['tempdet'],  hdr['filtnam'], hdr.get('cover'), hdr['EQUINOXU']]
 one, two, three = [display_info(fil) for fil in [firstfil, secondfil, thirdfil]]
+print '$$$$$$$$ INFO $$$$$$$$'
 print one
 print two
 print three
+print '$$$$$$$$$$$$$$$$$$$$$$'
 
-#find the dates of each file
+#================ Find the dates of each file ==================
 firstdate, seconddate, thirddate = [loadfits(fil)[1]['DATE'] for fil in [firstfil, secondfil, thirdfil]]
+print '$$$$$$$$ DATE $$$$$$$$$'
 print firstdate
 print seconddate
 print thirddate
-
-#reformat them so we can mathematically manipulate them to get them into days
+print '$$$$$$$$$$$$$$$$$$$$$$$'
+#====== Reformat the dates so we can mathematically manipulate them to =======
+#============== them into days ~~ they have the format of ====================
+#=============== [year, month, day, hour, minute, second] ====================
+#================ example - [2015, 10, 14, 4, 13, 39.67] =====================
 firstdate_new, seconddate_new, thirddate_new = [[int(arr[:4]), int(arr[5:7]), int(arr[8:10]), int(arr[11:13]), 
                     int(arr[14:16]), float(arr[17:])] for arr in [firstdate, seconddate, thirddate]]
-print firstdate_new #[year, month, day, hour, minute, second]
-print seconddate_new # [2015, 10, 14, 4, 13, 39.67] #example
+print '$$$ Reformated Date $$$'
+print firstdate_new 
+print seconddate_new 
 print thirddate_new
-
-#~~~setting the base as the first day of october at time 00:00:00.0~~~#
+print '$$$$$$$$$$$$$$$$$$$$$$$'
+#==== Set the base as the first day of October at time 00:00:00.0 =============
 t_1, t_2, t_3 = [x[2] + x[3]/24. + x[4]/(60.*24) + x[5]/(3600*24.) for x in [firstdate_new, seconddate_new, thirddate_new]]
+print '$$$$$$$$$ Time $$$$$$$$'
 print t_1
 print t_2
 print t_3
-
+#========= Finding the Taus (time differences) =========================
 tau_1 = t_2 - t_1
 tau_3 = t_3 - t_2
-print tau_1
-print tau_3
+print 'tau1', tau_1
+print 'tau3', tau_3
+print '$$$$$$$$$$$$$$$$$$$$$$'
 
+#============= Functions =====================
 def get_xyzeq(alpha, delta):
     """ get x_eq, y_eq, and z_eq"""
     x_eq = np.cos(alpha)*np.cos(delta)
@@ -1126,9 +1204,11 @@ def get_xyzeq(alpha, delta):
     z_eq = np.sin(delta)
     return x_eq,y_eq,z_eq
 def get_XYZeq(alpha0, delta0):
+    """ get X_eq, Y_eq, and Z_eq (Earth to Sun)"""
     return get_xyzeq(alpha0, delta0)
     
 def get_s(alpha,delta,ep=epsilon):
+    """ returns the s vector """
     x_eq, y_eq, z_eq = get_xyzeq(alpha, delta)
     xyz_eq = np.transpose(np.matrix([x_eq,y_eq,z_eq]))
 
@@ -1147,14 +1227,25 @@ def s2dot(s1,s2,s3,tau_1,tau_3):
 def s2ddot(s1,s2,s3,tau_1,tau_3):
     s_ddot = ((2.*(s3-s2))/(tau_3*(tau_1 + tau_3))) - ((2.*(s2-s1)) / (tau_1*(tau_1 + tau_3)))
     return s_ddot
+def findasteroid(R, s2, s_dot, s_ddot):
+    eps = 1 
+    R_len = np.sqrt(np.dot(R, R))
+    rguess = 2
+    r_cross_s= np.cross(R, s2)
+    s_cross_s = np.cross(s_ddot, s2)
+    numerator = np.dot(s_dot, r_cross_s)
+    denom = np.dot(s_dot, s_cross_s)
+    while eps > 10e-21:
+        rho=k**2*((1/R_len**3 ) - (1./rguess**3))*(numerator/denom)
+        rsq = rho**2+R_len**2 + 2*rho*np.dot(R,s2)
+        eps = abs(np.sqrt(rsq)-rguess)
+        rguess = np.sqrt(rsq)
+    return rguess, rho
 
-s1 = get_s(alpha1, delta1,epsilon)
-s2 = get_s(alpha2, delta2,epsilon)
-s3 = get_s(alpha3, delta3,epsilon)
-s2dot = s2dot(s1, s2, s3, tau_1, tau_3)
-s2ddot = s2ddot(s1,s2,s3,tau_1,tau_3)
-
-#finding X_eq, Y_eq, and Z_eq
+#========= Getting XYZ from the RA and DEC of the earth to sun =================
+#====================== (didn't really work :/) ================================
+#got all the ra0 and dec0 from HORIZONS http://ssd.jpl.nasa.gov/horizons.cgi#top 
+#======== Observer Location = Sun -- 500@10; target body = Earth -- 399 ========
 def ra_dec_to_deg(ra, dec):
     radeg = 15*(float(ra[0:2])+float(ra[3:5])/60.+float(ra[6:])/3600.)
     dsgn = np.sign(float(dec[0:2]))
@@ -1166,10 +1257,167 @@ ra03, dec03 = '01:40:25.50', '10:25:19.0' # 2015-Oct-21 00:00
 alpha01, delta01 = ra_dec_to_deg(ra01, dec01)
 alpha02, delta02 = ra_dec_to_deg(ra02, dec02)
 alpha03, delta03 = ra_dec_to_deg(ra03, dec03)
+alpha01, delta01 = math.radians(alpha01), math.radians(delta01)
+alpha02, delta02 = math.radians(alpha02), math.radians(delta02)
+alpha03, delta03 = math.radians(alpha03), math.radians(delta03)
+#x_eq, y_eq, z_eq = get_s(alpha2, delta2)
+#X_eq, Y_eq, Z_eq = get_s(alpha02, delta02)
+#rho_sq = (x_eq-X_eq)**2. + (y_eq-Y_eq)**2. + (z_eq-Z_eq)**2.
+#rho = np.sqrt(rho_sq)
 
-x_eq, y_eq, z_eq = get_xyzeq(alpha2, delta2)
-X_eq, Y_eq, Z_eq = get_xyzeq(alpha02, delta02)
-rhosq = (x_eq-X_eq)**2. + (y_eq-Y_eq)**2. + (z_eq-Z_eq)**2.
-rhoss = np.sqrt(rhosq)
-print rhoss
-earth_sun_distance = [8.946655614799660E-01 ,4.376048778015129E-01,-2.270836795464193E-05]
+#=========================== find the asteroid! ================================
+s1 = get_s(alpha1, delta1, epsilon)
+s2 = get_s(alpha2, delta2, epsilon)
+s3 = get_s(alpha3, delta3, epsilon)
+s2dot = s2dot(s1, s2, s3, tau_1, tau_3)
+s2ddot = s2ddot(s1, s2, s3, tau_1, tau_3)
+earth_sun_distance = [8.946655614799660E-01 ,4.376048778015129E-01,-2.270836795464193E-05] #10/20/15
+r, rho = findasteroid(earth_sun_distance, s2, s2dot, s2ddot)
+print '$$$$$$$$$$$'
+print 's1', s1
+print 's2', s2
+print 's3', s3
+print 's2dot', s2dot
+print 's2ddot', s2ddot
+print 'r:', r
+print 'rho:', rho
+print '$$$$$$$$$$$'
+
+#===============================================================================
+#================================ END OF PARALLAX ============================== 
+#===============================================================================
+
+#===============================================================================
+#================== Fitting the star matching by first linear fit ==============
+#=================== (will be able to see how there is rotation) ===============
+#========================= used the LLS fn from Lab 2 ==========================
+#===============================================================================
+
+def linleastsquares(data, poly):
+    """
+    data: [x,y] what you are trying to fit
+    poly: the number of terms you want i.e. poly = 3 --> ax**2 + bx + c
+    """
+    sum_x_arr = [np.sum(data[0]**i) for i in np.arange(1,(poly-1)*2+1)]
+    sum_xy_arr = [np.sum(data[0]**i * data[1]) for i in np.arange(0, poly)]
+    
+    left = [[None for i in range(poly)] for j in range(poly)]
+    right = [[i] for i in sum_xy_arr]
+    for i in range(poly):
+        for j in range(poly):
+            if i == 0 and j == 0:
+                left[i][j] = len(data[0])
+            else:
+                left[i][j] = sum_x_arr[i+j-1]
+    inv_left = np.linalg.inv(left)
+    final = np.dot(inv_left,right)
+    return final
+
+#========================= Plotting the first linear fit! ======================
+#============= using the LLSgen, fit the x and y data separately ===============
+chosenpoints_arr = chosenpoints_arrDI
+fil = DanaeI_file_arr[5]
+#NON-ROTATION
+def plotmatch(fil, chosenpoints_arr):
+    USNO_CCD_info = USNO_CCD(fil)
+
+    USNOx = USNO_CCD_info[1] # all USNO x values
+    USNOy = USNO_CCD_info[2] #all USNO y values
+    CCDx = USNO_CCD_info[3] # all CCD x values
+    CCDy = USNO_CCD_info[4] # all CCD y values
+    
+    chosen_centroids_indexes = np.transpose(chosenpoints_arr)[0] # to get the indexes for the CCD points
+    chosen_usno_indexes = np.transpose(chosenpoints_arr)[1]      # to get the indexes for the USNO points
+    
+    chosen_ccdx = CCDx[chosen_centroids_indexes] # apply the indexes above 
+    chosen_ccdy = CCDy[chosen_centroids_indexes] # to get the chosen indexes 
+    chosen_usnox = USNOx[chosen_usno_indexes]
+    chosen_usnoy = USNOy[chosen_usno_indexes]
+    
+    cfitx, slopex = linleastsquares([chosen_ccdx,chosen_usnox],2)
+    cfity, slopey = linleastsquares([chosen_ccdy,chosen_usnoy],2)
+    #newcent means the new fitted centroids from the CCD after matching
+    newcentx = chosen_ccdx*slopex+cfitx
+    newcenty = chosen_ccdy*slopey+cfity
+    fig = plt.figure()
+    plt.plot(newcentx, newcenty, 'b^', ms = 6, label = 'Fitted CCD centroids')
+    plt.plot(chosen_usnox, chosen_usnoy, 'ro', ms = 6, label = 'Mapped USNO values')
+    plt.title('Matched centroids after non-rotation LLS of x and y', fontsize = 20)
+    plt.xlabel('Pixel', fontsize = 16); plt.ylabel('Pixel', fontsize = 16)
+    plt.legend()
+    plt.ylim([0,1024]); plt.xlim([0,1024])
+    return fig
+        
+#plt.show(plotmatch(DanaeI_file_arr2[5], chosenpoints_arrDI2))
+
+#===============================================================================
+#===================== Plotting the trajectory of the asteroid =================
+#===============================================================================
+#Gisela I 5
+#alpha1_deg, delta1_deg =2.36878624168, 7.28901377175
+#alpha2_deg, delta2_deg =1.40495296043, 6.54222653246
+#alpha3_deg, delta3_deg  =1.27175373155, 6.42141439152
+
+#Danae I 5
+alpha1_deg, delta1_deg =8.70125315478, 27.3414416801
+alpha2_deg, delta2_deg =7.21409509162, 27.1301990039
+alpha3_deg, delta3_deg  =7.00514806729, 27.082107484
+
+def display_asteroid_traj(alpha1_deg, delta1_deg, alpha2_deg, delta2_deg, alpha3_deg, delta3_deg):
+    fig = plt.figure(figsize=(12,5))
+    plt.annotate('10/13', (alpha1_deg, delta1_deg), fontsize = 12)
+    plt.annotate('10/19', (alpha2_deg, delta2_deg), fontsize = 12)
+    plt.annotate('10/20', (alpha3_deg, delta3_deg), fontsize = 12)
+    x = [alpha1_deg, alpha2_deg, alpha3_deg]
+    y = [delta1_deg, delta2_deg, delta3_deg]
+    plt.scatter(x, y)
+    z = linleastsquares([x, y], 3) # fit the trajectory to a quadratic
+    x1 = np.linspace(min(x),max(x),100)
+    plt.plot(x1, z[0] +z[1]*x1 + z[2]*x1*x1)
+    plt.gca().invert_xaxis()
+    plt.title('Trajectory of Danae', fontsize =20)
+    plt.xlabel('RA [deg]', fontsize =18)
+    plt.ylabel('DEC [deg]', fontsize =18)
+    return fig
+#plt.show(display_asteroid_traj(alpha1_deg, delta1_deg, alpha2_deg, delta2_deg, alpha3_deg, delta3_deg))
+
+#===============================================================================
+#=============================== GET Functions =================================
+#===============================================================================
+def get_plate_constants(fil, chosenpoints_arr=[]):
+    a11, a12, x0, a21, a22, y0, T_fp, T, chosen_ccdx, chosen_ccdy, origx, origy = fullfit(fil, chosenpoints_arr)
+    print '####################'
+    print 'a11', a11
+    print 'a12', a12
+    print 'a21', a21
+    print 'a22', a22
+    print 'x0', x0
+    print 'y0', y0
+    print 'sq of det of T', np.sqrt(np.linalg.det(T))
+    print '####################'
+
+def get_rms(fil, chosenpoints_arr = []):
+    fig_fit, fig_residuals, finalxarr, finalyarr, resx, resy, rms_x, rms_y, fig3 = plotfinalfit_res(fil, chosenpoints_arr)
+    print 'rms_x', rms_x
+    print 'rms_y', rms_y
+    
+def plotUSNO_w_asteroid(fil, index, chosenpoints_arr):
+    """ This function just plots the USNO catalog of stars, given a fits 
+    file WITH the asteroid"""
+    radeg, dsgn, dedeg, fovam, epoch = USNOhelper(fil)
+    name, rad, ded, rmag = usno(radeg,dedeg,fovam,epoch)
+    alpha, delta = conv_coords(fil, index, chosenpoints_arr)
+    print 'HFASLFHA', alpha, delta
+    hdr = loadfits(fil)[1]
+    w = np.where(rmag <18.)[0]
+    fig = plt.figure()
+    plt.plot(rad[w],ded[w],'g.')
+    plt.plot(alpha,delta,'ko')
+    plt.locator_params(axis='x',nbins=4); plt.locator_params(axis='y',nbins=4)
+    plt.tick_params('x',pad=10)
+    plt.xlabel('RA [Deg]', fontsize = 18); plt.ylabel('Dec [Deg]',fontsize = 18)
+    plt.ticklabel_format(useOffset=False)
+    plt.axis('scaled')
+    plt.gca().invert_xaxis()
+    return fig
+#plt.show(plotUSNO_w_asteroid(DanaeI_file_arr1[5] 13, chosenpoints_arrDI1))

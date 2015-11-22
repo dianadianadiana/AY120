@@ -3,11 +3,10 @@
 #==================================
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
 import matplotlib.colors as col
 import astropy.io.fits as pf
 import math
-import Lab4_centroids as l4cen # import the centroid function
+import Lab4_centroids as cen # import the centroid function
 import LLS as LLS
 
 #==================================
@@ -35,6 +34,8 @@ redlaser_files = [datadir+objects[3]+i+'.fit' for i in x]
 
 sun_1_files = [datadir+'sun_data/11-11/'+sun_objects[0]+i+'.fit' for i in get_num(1,88)]
 sun_2_files = [datadir+'sun_data/11-11/'+sun_objects[1]+i+'.fit' for i in get_num(1,101)]
+
+print 
 '''
 sun_scan_1_files = [datadir+'sun_data/11-12/'+sun_objects[2]+i+'.fit' for i in get_num(1,74)]
 sun_scan_2_files = [datadir+'sun_data/11-12/'+sun_objects[3]+i+'.fit' for i in get_num(1,77)]
@@ -80,7 +81,7 @@ img_sun_3_1 = avg_fits_img(sun_3_files1)
 img_sun_4_1 = avg_fits_img(sun_4_files1)
 '''
 #==================================   
-def normalize_img(img):
+def normalize(img):
     return img / np.median(img)
     
     
@@ -146,7 +147,8 @@ def find_bands(img):
         arr.append([elem[0], elem[-1]])
     print arr
     return arr
-
+#m_arr = find_bands(img_halogen)
+#decided to copy n paste the m_arr just to save time
 m_arr = [[268, 271], [298, 308], [334, 346], [373, 384], [414, 425],
         [457, 467], [503, 511], [550, 558], [601, 608], [652, 660], 
         [707, 717], [765, 776], [826, 840], [891, 908], [960, 980]] #1.5lim, >40
@@ -164,11 +166,13 @@ def avg_img(img, lower_bound, upper_bound): # taken and modified 'avg_fits_img' 
     for arr in row_arr[1:]:
         avg_arr += arr
     return avg_arr/(upper_bound - lower_bound + 1)
-
-def display_band(img, order_num):
-    """ Displays the band at the order_num and returns the figure and the band itself """
+def get_band_flux(img, order_num):
     lower_bound, upper_bound = m_arr[-order_num][0], m_arr[-order_num][1]
     current_band = avg_img(img, lower_bound, upper_bound)
+    return current_band
+def display_band(img, order_num):
+    """ Displays the band at the order_num and returns the figure and the band itself """
+    current_band = get_band_flux(img, order_num)
     fig = plt.figure()
     plt.title('m = ' + str(order_num))
     plt.plot(current_band)
@@ -199,7 +203,7 @@ def display_all_bands(img):
 def display_fits(img, m_arr = [], bool_centroids = False):
     """ Display the fits image with the band lines (if m_arr) """    
     fig = plt.figure()
-    img = normalize_img(img)
+    img = normalize(img)
     #plt.title(hdr['object'], fontsize=18)
     plt.imshow(img, origin='lower', interpolation='nearest', cmap='gray', 
                vmin=0.8, vmax=1.8)  
@@ -208,24 +212,22 @@ def display_fits(img, m_arr = [], bool_centroids = False):
         for elem in m_arr:
             plt.axhline(y = .5*(elem[0] + elem[1])) #plot the average
     if bool_centroids: ### IGNORE (from lab3)
-        centroids_x, centroids_y = l4cen.centroid(img) # centroids_x ~ cols, centroids_y ~ rows
+        centroids_x, centroids_y = cen.centroid(img) # centroids_x ~ cols, centroids_y ~ rows
         #plt.scatter(centroids_y, centroids_x, marker='x',s=100) #x's
         plt.scatter(centroids_y, centroids_x, s=150, facecolors='none', edgecolors='b') #circles
         return [fig, centroids_y, centroids_x]
     #plt.colorbar()
-     
-
     return fig
 
 fig_centroids, x_cen_vals, y_cen_vals = display_fits(img_neon, [], True)  
-print x_cen_vals
-print y_cen_vals
 centroid_pair_arr = np.transpose([x_cen_vals, y_cen_vals])
 print centroid_pair_arr
 print m_arr   
-plt.show(fig_centroids)
-plt.show(display_fits(img_redlaser))
+#plt.show(fig_centroids)
+#plt.show(display_fits(img_redlaser))
+
 '''
+how dicts work
  tel = {'jack': 4098, 'sape': 4139}
 >>> tel['guido'] = 4127
 >>> tel
@@ -254,45 +256,47 @@ while k <= len(m_arr):
     pair_dict[k] = temp_arr
     k+=1
 print pair_dict
+
 #==================================
 # Fitting
 #==================================
-# focus on the 5th order
-order5_pairs = pair_dict[5]
-print order5_pairs
+# Get all the neon values for each band
 neonspec=  np.array([585.249,588.189,594.483,597.553,603.0,607.434,609.616,
 614.306,616.359,621.72,626.649,630.479,633.443,638.299,640.225,650.653,
-653.288,659.895,667.828,671.704])
+653.288,659.895,667.828,671.704]) 
+neonspec7 = np.array([585.249,588.189,594.483,597.553])
+neonspec6 = np.array([597.553,603.0,607.434,609.616,614.306,616.359,621.72])
 neonspec5 = np.array([621.72,626.649,630.479,633.443,638.299,640.225,])
 neonspec4 = np.array([638.299,640.225,650.653,653.288,659.895])
+neonspec3 = np.array([659.895, 667.828, 671.704])
+#==================================
+# Get all the centroid values for each band
+order7_pairs = pair_dict[7]
+x_centroids7, y_centroids7 = np.transpose(order7_pairs)
+order6_pairs = pair_dict[6]
+x_centroids6, y_centroids6 = np.transpose(order6_pairs); x_centroids6[2] = 1027.13 # that one was centroided weirdly
+order5_pairs = pair_dict[5]
 x_centroids5, y_centroids5 = np.transpose(order5_pairs)
-
 order4_pairs = pair_dict[4]
-x_centroids4, y_centroids4 = np.transpose(order4_pairs)
+x_centroids4, y_centroids4 = np.transpose(order4_pairs); x_centroids4[1] = 1027.655784 # that one was centroided weirdly
 #x_centroids4 = np.append(x_centroids4, 356.314) # green laser
 #neonspec4 = np.append(neonspec4, 650)
-x_centroids4 = [36.623323379750964, 352.71187030023879, 475.51865542624859, 
-943.4625849415421, 1027.5432586885437]
 #x_centroids4 = np.append(x_centroids4, 356.314) # green laser
-
-
+order3_pairs = pair_dict[3]
+x_centroids3, y_centroids3 = np.transpose(order3_pairs); x_centroids3 = x_centroids3[:-1] 
 #==================================
-centroids = x_centroids5
-spec = neonspec5
-centroids, spec = sorted(centroids), sorted(spec)
-print centroids
-print spec
-fit = [centroids, spec]
-linear = LLS.linleastsquares(fit, 2)
-quad = LLS.linleastsquares(fit, 3)
-#cubic = LLS.linleastsquares(fit, 4)
-
-ideal_linear = linear[1]*centroids+linear[0]
-ideal_quad = quad[2]*centroids*centroids + quad[1]*centroids + quad[0]
-#ideal_cubic = cubic[3]*centroids*centroids*centroids + cubic[2]*centroids*centroids + cubic[1]*centroids + cubic[0]
-
-def idealfigs(): #taken from Lab1
-    fig = plt.figure(figsize = (12,5))
+def idealfigs_residuals(centroids, spec): #taken from Lab1
+    centroids, spec = sorted(centroids), sorted(spec)
+    fit = [centroids, spec]
+    linear = LLS.linleastsquares(fit, 2)
+    quad = LLS.linleastsquares(fit, 3)
+    #cubic = LLS.linleastsquares(fit, 4)
+    
+    ideal_linear = linear[1]*centroids+linear[0]
+    ideal_quad = quad[2]*centroids*centroids + quad[1]*centroids + quad[0]
+    #ideal_cubic = cubic[3]*centroids*centroids*centroids + cubic[2]*centroids*centroids + cubic[1]*centroids + cubic[0]
+   
+    idealfig = plt.figure(figsize = (12,5))
     plt.scatter(centroids,spec,s=70,c='r',label='experimental')
     
     plt.plot(centroids, ideal_linear,'--',label='linear best fit')
@@ -307,12 +311,8 @@ def idealfigs(): #taken from Lab1
     plt.legend(numpoints=1, loc = 4, fontsize = 18)
     plt.tick_params(labelsize=16)
     plt.tight_layout()
-    return fig
     
-plt.show(idealfigs())
-
-def risiduals(): # taken from Lab2
-    fig = plt.figure(figsize = (12,5))
+    residuals_fig = plt.figure(figsize = (12,5))
     lin_r = ideal_linear - spec 
     quad_r = ideal_quad -  spec
     #cubic_r = ideal_cubic - spec
@@ -325,9 +325,62 @@ def risiduals(): # taken from Lab2
     plt.xlabel('Pixels',fontsize=16);    plt.ylabel('Difference of Fit and Actual Value',fontsize=16)
     plt.legend(numpoints=1, loc = 9, fontsize = 14)
     plt.tick_params(labelsize=14)
-    return fig
-    
-plt.show(risiduals()) # off by like .5/1, want it to be like .1
+    return idealfig, residuals_fig
+#==================================
+print "centroids"
+print sorted(x_centroids7)
+print sorted(x_centroids6)
+print sorted(x_centroids5)
+print sorted(x_centroids4)
+print sorted(x_centroids3)
+#x_centroids_all =
+plt.show(fig_centroids) 
+centroids = x_centroids7
+spec = neonspec7
+#print centroids
+#print spec    
+#ideal_fig, residuals_fig = idealfigs_residuals(centroids, spec)
+#plt.show(idealfigs_residuals(centroids,spec)[0])
 
+
+# FINISH THE CALLIBRATION HERE, according to joes email, he implied that the errors
+#might be big, so i think its ok that mine are like 3 nm off
 #wavelength_arr = quad[2]*pixel_arr*pixel_arr + quad[1]*pixel_arr + quad[0]
+
+
+#==================================
+#SUNS FLUX OVER TIME
+#==================================
+def get_flux_over_time(files):
+    """ This takes in a directory (files) and finds the total flux of each file.
+    To find the total flux of each file, I summed up the fluxes from each band 
+    (in order to ensure no "false" flux readings were considered). 
+    Returns: an array with the summed fluxes of each file in the 'files' dir"""
+    flux_over_time_arr = []
+    for k in range(len(files)):
+        fil = sun_1_files[k]
+        img = loadfits(fil)[0]
+        temp_flux = 0
+        for num in range(len(m_arr)):
+            band_flux = get_band_flux(img, num)
+            temp_flux += np.sum(band_flux)
+        flux_over_time_arr.append(temp_flux)
+    return flux_over_time_arr 
+
+def sun_flux_over_time(files):
+    """ This funtion just plots the total relative flux over time """
+    flux_over_time_arr = get_flux_over_time(files)
+    flux_over_time_arr = flux_over_time_arr/ np.median(flux_over_time_arr)
+    hdr = loadfits(files[0])[1]
+    exptime, date, filename = hdr['EXPOSURE'], hdr['DATE-OBS'], hdr['OBJECT']
+    date = date[5:7]+'/'+date[8:10]+'/'+date[:4] #format the date to look prettier
+    fig = plt.figure(figsize = (12,5))
+    plt.title('Flux versus time for ' + filename + ' on ' + date + '\nwith exposure time: ' + str(exptime) + ' seconds', fontsize = 20)
+    plt.xlabel('Time (seconds)', fontsize = 18) ; plt.ylabel('Total Relative Flux', fontsize = 18)
+    plt.plot(exptime*np.arange(len(flux_over_time_arr)),flux_over_time_arr , 'o')
+    plt.tight_layout()
+    return fig
+#plt.show(display_fits(img_sun_1)) #the fits img 
+#plt.show(sun_flux_over_time(sun_1_files)) #the flux vs time
+
 

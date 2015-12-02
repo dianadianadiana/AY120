@@ -8,6 +8,7 @@ import astropy.io.fits as pf
 import math
 import Lab4_centroids as cen # import the centroid and such functions
 import LLS as LLS
+import heapq # for finding the max 3
 
 #==================================
 # Global Variables
@@ -406,6 +407,7 @@ def get_delt(time_arr, flux_arr):
     
     delt = time_arr[arr[-1]] - time_arr[arr[0]]
     t_0 = delt/2. + time_arr[arr[0]]
+    print 't0 loc', t_0_loc
     print 'arr', arr
     print 'delt', delt
     print 't_0', t_0
@@ -574,7 +576,8 @@ def plot_wavelength_fit(wavelength, files, index, order_num = 4):
     # plot the spectrum minus the poly fit
     fig_flat = plt.figure()
     ax2 = fig_flat.add_subplot(111)
-    ax2.plot(wavelength, current_band-wavelength1)
+    flattened_flux = current_band-wavelength1
+    ax2.plot(wavelength, flattened_flux)
     ax2.set_title('Spectrum ' + str(index) + ' after poly fit subtracted', fontsize=20)
     ax2.set_xlabel('Wavelength [nm]', fontsize=18)
     ax2.set_ylabel('I/I_0 - Fit', fontsize=18)
@@ -583,9 +586,11 @@ def plot_wavelength_fit(wavelength, files, index, order_num = 4):
     #========================
     return [fig_fit, fig_flat]
     
-# transit_arr for sun_1_files on 11/11 [23, 24, 25, 26, 27, 28, 29, 30, 31, 
-# 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 
-# 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65]
+def get_flux_for_correlation(wavelength, files, index, order_num = 4):
+    img, hdr = loadfits(files[index])
+    current_band = get_current_band(img, order_num, nontransit_noise)
+    wavelength1 = get_wavelength_fit(wavelength, current_band)  
+    return current_band - wavelength1
 
 transit_arr_11_11 = [23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 
 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 
@@ -594,13 +599,102 @@ order_num = 4
 fig_two_indexes, nontransit_noise, wavelength = display_band_sun(sun_1_files, order_num)
 plt.show(fig_two_indexes)
 index = 63
+
+
+#for index in transit_arr_11_11:
+#    fig_fit, fig_flat = plot_wavelength_fit(wavelength, sun_1_files, index)
+#    plt.show(fig_fit)
+#    plt.show(fig_flat)
+
+
+def ham_it_up(arr):
+    return np.hamming(len(arr)) * arr
+    
+def get_crossed(flux1, flux2):
+    flux1 = ham_it_up(flux1)
+    flux2 = ham_it_up(flux2)
+    return np.correlate(flux1,flux2,'same')
+
+def get_shift_axis(cross_corr):
+    n_pix=len(cross_corr)
+    if n_pix % 2: 
+        print 'y'
+        shift_axis=np.arange(-n_pix/2.+1,n_pix/2.+1)
+    else: 
+        shift_axis=np.arange(-n_pix/2.,n_pix/2.)
+    return shift_axis
+def get_shift(shift_axis, cross_corr, num = 3):
+    max_three = heapq.nlargest(num, range(len(cross_corr)), cross_corr.__getitem__)
+    max_three = sorted(max_three)
+    #print max_three
+    #print shift_axis[max_three]
+    #print cross_corr[max_three]
+    
+    fit = [shift_axis[max_three], cross_corr[max_three]]
+    quad = LLS.linleastsquares(fit, 3)
+    x = np.linspace(-1,1, 100)
+    max_three_fit = calibrate_quad(quad, x)
+    shift_max_y = np.amax(max_three_fit)
+    shift_max_x = x[np.argmax(max_three_fit)] 
+    return [shift_max_x, shift_max_y, x, max_three_fit]
+    
+
+    
+def corr_plot(flux1, flux2):
+    #calculate the cross correlation (y-axis)
+    cross_corr = get_crossed(flux1, flux2)
+    #calculate shift axis (x-axis)
+    shift_axis = get_shift_axis(cross_corr)
+    
+    fig = plt.figure()
+    plt.subplot(2,1,1)
+    plt.plot(one,'b',linewidth=2)
+    plt.plot(two,'r',linewidth=2)
+    plt.xlabel('X Axis', fontsize=16) ; plt.ylabel('Y Axis [Unit]', fontsize=16)
+    plt.title('Cross-Correlation', fontsize=18)
+
+    shift_max_x, shift_max_y, x, max_three_fit = get_shift(shift_axis, cross_corr)
+    
+    plt.subplot(2,1,2)
+    plt.plot(shift_axis,cross_corr,'g',linewidth=1)
+    plt.plot(shift_axis,cross_corr,'bo',linewidth=1)
+    plt.plot(x, max_three_fit,'k', linewidth = 2, label = str(shift_max_x))
+    plt.xlim([-15,15])
+    plt.xlabel('Shift Axis', fontsize=16) ; plt.ylabel('Cross-Correlation [Unit$^2$]', fontsize=16)
+    plt.legend(loc=0)
+    plt.tight_layout()
+    return fig, shift_max_x
+folder = sun_1_files
+one = get_flux_for_correlation(wavelength, folder, 60)
+two = get_flux_for_correlation(wavelength, folder, 44)
+plt.show(corr_plot(one, two))
+#one = get_flux_for_correlation(wavelength, folder, index)
+#two = get_flux_for_correlation(wavelength, folder, 30)
+# 44th spectrum is the t_0, so go from transit_arr[0] to transit_arr[-1]
+t_0_index = 44
+t_0_flux = get_flux_for_correlation(wavelength, folder, t_0_index)
+two = get_flux_for_correlation(wavelength, folder, 44)
+shift_arr = []
+
 for index in transit_arr_11_11:
-    fig_fit, fig_flat = plot_wavelength_fit(wavelength, sun_1_files, index)
-    plt.show(fig_fit)
-    plt.show(fig_flat)
+    print index
+    curr_flux = get_flux_for_correlation(wavelength, folder, index)
+    cross_corr = get_crossed(curr_flux, t_0_flux)
+    shift_axis = get_shift_axis(cross_corr)
+    x_shift = get_shift(shift_axis, cross_corr)[0]
+    shift_arr.append(x_shift)
+    
+#    one = get_flux_for_correlation(wavelength, folder, index)
+#    fig, shift = corr_plot(one, two)
+#    #plt.show(fig)
+#
+#    #plt.show(corr_plot(curr_flux, t_0_flux))
+#    shift_arr.append(shift)
 
 
-
-
-
-
+print shift_arr
+def show_this(shift_arr):
+    fig = plt.figure()
+    plt.plot(shift_arr, 'o')
+    return fig
+plt.show(show_this(shift_arr))

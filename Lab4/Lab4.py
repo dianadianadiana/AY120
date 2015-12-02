@@ -224,8 +224,7 @@ def display_fits(img, m_arr = [], bool_centroids = False, band = []):
         return [fig, centroids_y, centroids_x]
     #plt.colorbar()
     return fig
-print 'HI'
-print m_arr
+
 fig_centroids, x_cen_vals, y_cen_vals = display_fits(img_neon, [], True)  
 fig_wo_centroids = display_fits(img_neon, [], False)  
 fig_w_bands =  display_fits(img_neon, m_arr, False)  
@@ -243,23 +242,13 @@ centroid_pair_arr = np.transpose([x_cen_vals, y_cen_vals])
 # Fitting
 #==================================
 #==================================
-# Get all the neon values for each band
-neonspec=  np.array([585.249,588.189,594.483,597.553,603.0,607.434,609.616,
-614.306,616.359,621.72,626.649,630.479,633.443,638.299,640.225,650.653,
-653.288,659.895,667.828,671.704]) 
-
-neonspec7 = np.array([585.249,588.189,594.483,597.553])
-neonspec6 = np.array([597.553,603.0,607.434,609.616,614.306,616.359,621.72])
-neonspec5 = np.array([621.72,626.649,630.479,633.443,638.299,640.225,])
-neonspec4 = np.array([638.29917,640.2248,650.65281,653.28822,659.89529])
-neonspec3 = np.array([659.895, 667.828, 671.704])
 #==================================
 def idealfigs_residuals(cen_spec): #taken from Lab1
     centroids, spec = cen_spec
     centroids, spec = sorted(centroids), sorted(spec)[::-1] # reverse the spec cause short lambda (left) to long lambda (right)
     print "IDEALFIGS_RESIDUALS"
-    print centroids
-    print spec 
+    print 'centroids', centroids
+    print 'neonspec', spec 
     fit = [centroids, spec]
     linear = LLS.linleastsquares(fit, 2)
     quad = LLS.linleastsquares(fit, 3)
@@ -305,6 +294,16 @@ def get_centroids_1D(img, order_num, width = 10, lower_limit = 300):
     peaks = cen.max_peaks(intensity_arr, width, lower_limit)
     return cen.centroid_1D(peaks, range(0,1048), intensity_arr, width)
 #==================================
+# Get all the neon values for each band
+neonspec=  np.array([585.249,588.189,594.483,597.553,603.0,607.434,609.616,
+614.306,616.359,621.72,626.649,630.479,633.443,638.299,640.225,650.653,
+653.288,659.895,667.828,671.704]) 
+neonspec7 = np.array([585.249,588.189,594.483,597.553])
+neonspec6 = np.array([597.553,603.0,607.434,609.616,614.306,616.359,621.72])
+neonspec5 = np.array([621.72,626.649,630.479,633.443,638.299,640.225,])
+neonspec4 = np.array([638.29917,640.2248,650.65281,653.28822,659.89529])
+neonspec3 = np.array([659.895, 667.828, 671.704])
+#==================================
 centroids3, centroids3_error = get_centroids_1D(img_neon, 3)
 centroids4, centroids4_error = get_centroids_1D(img_neon, 4, width = 6)
 centroids5, centroids5_error = get_centroids_1D(img_neon, 5)
@@ -314,7 +313,8 @@ centroids8, centroids8_error = get_centroids_1D(img_neon, 8) # don't need cause 
 centroid_redlaser, certoid_redlaser_error = get_centroids_1D(img_redlaser, 4)
 #centroids4 = np.append(centroids4, centroid_redlaser) # red laser
 #neonspec4 = np.append(neonspec4, 653)
-#made a dict to easily call centroids and neonspec based on which order I want
+
+# made a dict to easily call centroids and neonspec based on which order I want
 cen_spec_dict = {3:[centroids3,neonspec3],4:[centroids4,neonspec4],5:[centroids5,neonspec5],
                 6:[centroids6,neonspec6],7:[centroids7,neonspec7]}
 #==================================
@@ -334,11 +334,12 @@ m = 4
 #ideal_fig, residuals_fig, quad = idealfigs_residuals(cen_spec_dict[m])
 #plt.show(ideal_fig)
 #plt.show(residuals_fig)
-
+#==================================
 # FINISH THE CALLIBRATION 
+#==================================
 def calibrate_quad(quad, x):
     return quad[2]*x*x + quad[1]*x + quad[0]
-
+    
 def plot_calibration(img, m):
     quad = idealfigs_residuals(cen_spec_dict[m])[2]
     wavelength = calibrate_quad(quad, np.arange(1048))
@@ -368,7 +369,6 @@ def plot_calibration_sun(fil, m): #for one file!
 
 #plt.show(plot_calibration_sun(sun_1_files[20],4))
     
-
 #==================================
 #==================================
 #SUNS FLUX OVER TIME
@@ -395,7 +395,6 @@ def get_flux_over_time(files):
         flux_arr.append(temp_flux)
     return [time_arr, flux_arr]
 
-#sun7time,sun7flux = flux_time(sun7[:-15])
 def get_delt(time_arr, flux_arr):
     arr=[] #holds all the indexes where the sun is shining
     for index, value in enumerate(flux_arr):
@@ -436,11 +435,12 @@ def sun_flux_over_time_fig(files):
     I_0 = flux_arr[t_0_loc] #because i rescaled the flux_arr
     
     # Figure of just the flux vs time
+    delt_str = "{:.6f}".format(delt)
     fig = plt.figure(figsize = (12,5))
     plt.title('Flux versus time for ' + filename + ' on ' + date + '\nwith exposure time: ' 
                 + str(exptime) + ' seconds', fontsize = 20)
     plt.xlabel('Time [s]', fontsize = 18) ; plt.ylabel('Total Relative Flux', fontsize = 18)
-    plt.plot(time_arr, flux_arr , 'o', label = 'delta t: ' + str(delt))
+    plt.plot(time_arr, flux_arr , 'o', label = 'delta t: ' + delt_str + 's')
     plt.axvline(x=t_0, c='r',ls ='--', linewidth =.75, label = 't_0 = ' + str(t_0))
     for point in transit_arr:
          plt.axvline(x=time_arr[point], c='r',ls ='--', linewidth =.75)
@@ -455,24 +455,26 @@ def sun_flux_over_time_fig(files):
                 + str(exptime) + ' seconds', fontsize = 20)
     t = np.arange(0 - delt , 0 + delt + 1 , .1) #go from -delt to delt with .1 increments for the fit
     i_arr = intensity(t, I_0, 0, delt/2, flux_arr, transit_arr) #set t_0 to be 0
-    plt.plot(t, i_arr, label = 'Fit, delta t: ' + str(delt) + 's')
+    plt.plot(t, i_arr, label = 'Fit, delta t: ' + delt_str + 's')
     plt.plot(np.array(time_arr)-t_0, flux_arr, 'o', label = 'Data') #plot the original data but offset of t_0 to make t_0 be at 0
-    plt.xlabel('Time - ' + str(jd + t_0)+' [s]'); plt.ylabel('I/I_0', fontsize = 18)
+    jd_t0 = loadfits(files[t_0_loc])[1]['JD']
+    plt.xlabel('Time - ' + str(jd_t0*24*3600)+' [s]', fontsize=18); plt.ylabel('I/I_0', fontsize = 18)
     plt.tight_layout()
     plt.legend(loc = 'best')
     plt.xlim([np.min(np.array(time_arr)-t_0), np.max(np.array(time_arr)-t_0)]); 
     plt.ylim([-.1,1.1])
     
     return fig, fig1
+    
 #plt.show(display_fits(img_sun_1)) #the fits img 
-plt.show(sun_flux_over_time_fig(sun_1_files)) #the flux vs time
+#plt.show(sun_flux_over_time_fig(sun_1_files)) #the flux vs time
 
 #==================================
 #==================================
 # PLOTTING THE SUN'S DIFFERENCE
 #==================================
 #==================================
-# for plotting the doppler shift
+# FOR PLOTTING THE DOPPLER SHIFT
 # (fig4 in https://drive.google.com/file/d/0B40Ynk22SiBpX2dvRFZzbEdZQmc/view)
 # - I call in 'files' and 'ordernum' as parameters, where the files are the sun files
 # - I then find the fluxes of each file in files and put that into flux_arr
@@ -483,7 +485,21 @@ plt.show(sun_flux_over_time_fig(sun_1_files)) #the flux vs time
 #       that is really close to the edge because of limb darkening effects)
 # - I then look for the noise in the fluxes by calculating the median of the non-transit
 #   points; I subtract this median from the band fluxes for each index later on
-# - I load in the img for each index, and then 
+# - I load in the img for each index, and then I get the flux of the band I input into 
+#   the function and subtract the noise from the nontransit points and then normalize 
+#   by dividing by the max of the band flux of each respective index
+#   (I had to ignore 10 points because they were just not good)
+# - Then I find the time change between the two indexes that I'm looking at by
+#   obtaining their JD (julian day) and converting it to seconds
+# - Then I need to calibrate the x axis, so I just call the corresponding quad
+#   fit for the order_num I input -- and apply the fit and also ignore the annoying 
+#   points
+# - I just plot everything to finish it off!
+def get_current_band(img, order_num, noise, ignore_index = 10):
+    # this is a helper function
+    band = get_band_flux(img, order_num) - noise
+    band /= np.max(band)
+    return band[:-ignore_index]
 def display_band_sun(files, order_num):
     # to figure out the indicies of the transit
     time_arr, flux_arr = get_flux_over_time(files)
@@ -498,24 +514,21 @@ def display_band_sun(files, order_num):
     exptime, filename = hdr_1['EXPOSURE'], hdr_1['OBJECT']
     date = hdr_1['DATE-OBS']
     date = date[5:7]+'/'+date[8:10]+'/'+date[:4] #format the date to look prettier
-    jd_1, jd_2 = hdr_1['JD'], hdr_2['JD']
-    current_band_1 = get_band_flux(img_1, order_num) - nontransit_noise
-    current_band_2 = get_band_flux(img_2, order_num) - nontransit_noise
-    current_band_1 = current_band_1/np.max(current_band_1)
-    current_band_2 = current_band_2/np.max(current_band_2)
-    ignore_index = 10 # for some reason there are 10 annoying points
-    current_band_1 = current_band_1[:-ignore_index]
-    current_band_2 = current_band_2[:-ignore_index]
+    #current_band_1 = get_band_flux(img_1, order_num) - nontransit_noise
+    #current_band_2 = get_band_flux(img_2, order_num) - nontransit_noise
+    #current_band_1 = current_band_1/np.max(current_band_1)
+    #current_band_2 = current_band_2/np.max(current_band_2)
+    #ignore_index = 10 # for some reason there are 10 annoying points
+    #current_band_1 = current_band_1[:-ignore_index]
+    #current_band_2 = current_band_2[:-ignore_index]
+    ignore_index = 10
+    current_band_1 = get_current_band(img_1, order_num, nontransit_noise, ignore_index = 10)
+    current_band_2 = get_current_band(img_2, order_num, nontransit_noise, ignore_index = 10)
     #========================
     # to find the time change
-    datestr = loadfits(files[0])[1]['DATE-OBS'][-8::]
-    starttime = float(datestr[0:2])*3600+float(datestr[3:5])*60 +float(datestr[6:])
-    datestr_1 = hdr_1['DATE-OBS'][-8::]
-    datestr_2 = hdr_2['DATE-OBS'][-8::]
-    date_1 = float(datestr_1[0:2])*3600+ float(datestr_1[3:5])*60 +float(datestr_1[6:])
-    date_2 = float(datestr_2[0:2])*3600+ float(datestr_2[3:5])*60 +float(datestr_2[6:])
-    time_1 = date_1 - starttime
-    time_2 = date_2 - starttime
+    jd_1, jd_2 = hdr_1['JD'], hdr_2['JD']
+    time_change = (jd_2-jd_1)*24*3600
+    time_change_str = "{:.1f}".format(time_change)
     #========================
     # Calibration for the x axis
     centroids, spec = cen_spec_dict[order_num]
@@ -525,8 +538,9 @@ def display_band_sun(files, order_num):
     wavelength = calibrate_quad(quad, np.arange(1048))
     wavelength = wavelength[:-ignore_index]
     #========================
+    # Plot everything Yay!
     fig = plt.figure()
-    plt.title('Change in time between the two events: ' + str((jd_2-jd_1)*24*3600) + ' [s]'
+    plt.title('Change in time between the two events: ' + time_change_str + ' [s]'
                 +'\nExposure time: ' + str(exptime) + ' [s]; The Sun (m='+str(order_num+30)+') on ' + date,
                 fontsize=20)
     plt.plot(wavelength, current_band_1, label = 'index1: ' + str(index1))
@@ -536,9 +550,29 @@ def display_band_sun(files, order_num):
     plt.ylim([np.min([np.min(current_band_1), np.min(current_band_2)])-.05,1.03])
     plt.gca().invert_xaxis()
     plt.legend(loc='best')
-    return fig
+    #========================
+    fit1 = [wavelength, current_band_1]
+    quad1 = LLS.linleastsquares(fit1, 3)
+    fit2 = [wavelength, current_band_2]
+    quad2 = LLS.linleastsquares(fit2, 3)
+    wavelength1 = calibrate_quad(quad1, wavelength)
+    wavelength2 = calibrate_quad(quad2, wavelength)
+    
+    fig1 = plt.figure()
+    ax1 = fig1.add_subplot(111)
+    ax1.plot(wavelength, current_band_1)
+    ax1.plot(wavelength, wavelength1,'k')
+    fig1.gca().invert_xaxis()
+    
+    fig2 = plt.figure()
+    ax2 = fig2.add_subplot(111)
+    ax2.plot(wavelength, current_band_1-wavelength1)
+    fig2.gca().invert_xaxis()
 
-# sun_arr for sun_1_files on 11/11 [23, 24, 25, 26, 27, 28, 29, 30, 31, 
+    
+    return fig, fig1, fig2
+
+# transit_arr for sun_1_files on 11/11 [23, 24, 25, 26, 27, 28, 29, 30, 31, 
 # 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 
 # 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65]
 order_num = 4

@@ -500,6 +500,11 @@ def get_current_band(img, order_num, noise, ignore_index = 10):
     band = get_band_flux(img, order_num) - noise
     band /= np.max(band)
     return band[:-ignore_index]
+def get_wavelength_fit(wavelength, current_band):
+    fit = [wavelength, current_band]
+    quad = LLS.linleastsquares(fit, 3)
+    wavelength_fit = calibrate_quad(quad, wavelength)
+    return wavelength_fit
 def display_band_sun(files, order_num):
     # to figure out the indicies of the transit
     time_arr, flux_arr = get_flux_over_time(files)
@@ -514,16 +519,9 @@ def display_band_sun(files, order_num):
     exptime, filename = hdr_1['EXPOSURE'], hdr_1['OBJECT']
     date = hdr_1['DATE-OBS']
     date = date[5:7]+'/'+date[8:10]+'/'+date[:4] #format the date to look prettier
-    #current_band_1 = get_band_flux(img_1, order_num) - nontransit_noise
-    #current_band_2 = get_band_flux(img_2, order_num) - nontransit_noise
-    #current_band_1 = current_band_1/np.max(current_band_1)
-    #current_band_2 = current_band_2/np.max(current_band_2)
-    #ignore_index = 10 # for some reason there are 10 annoying points
-    #current_band_1 = current_band_1[:-ignore_index]
-    #current_band_2 = current_band_2[:-ignore_index]
-    ignore_index = 10
-    current_band_1 = get_current_band(img_1, order_num, nontransit_noise, ignore_index = 10)
-    current_band_2 = get_current_band(img_2, order_num, nontransit_noise, ignore_index = 10)
+    ignore_index = 10 # for some reason there are 10 annoying points
+    current_band_1 = get_current_band(img_1, order_num, nontransit_noise)
+    current_band_2 = get_current_band(img_2, order_num, nontransit_noise)
     #========================
     # to find the time change
     jd_1, jd_2 = hdr_1['JD'], hdr_2['JD']
@@ -543,42 +541,63 @@ def display_band_sun(files, order_num):
     plt.title('Change in time between the two events: ' + time_change_str + ' [s]'
                 +'\nExposure time: ' + str(exptime) + ' [s]; The Sun (m='+str(order_num+30)+') on ' + date,
                 fontsize=20)
-    plt.plot(wavelength, current_band_1, label = 'index1: ' + str(index1))
-    plt.plot(wavelength, current_band_2, label = 'index2: ' + str(index2))
+    plt.plot(wavelength, current_band_1, label = 'spectrum1: ' + str(index1))
+    plt.plot(wavelength, current_band_2, label = 'spectrum2: ' + str(index2))
     plt.xlabel('Wavelength [nm]', fontsize = 18); plt.ylabel('Intensity [ADU]', fontsize =18)
     plt.xlim([np.min(wavelength),np.max(wavelength)])
     plt.ylim([np.min([np.min(current_band_1), np.min(current_band_2)])-.05,1.03])
     plt.gca().invert_xaxis()
     plt.legend(loc='best')
     #========================
-    fit1 = [wavelength, current_band_1]
-    quad1 = LLS.linleastsquares(fit1, 3)
-    fit2 = [wavelength, current_band_2]
-    quad2 = LLS.linleastsquares(fit2, 3)
-    wavelength1 = calibrate_quad(quad1, wavelength)
-    wavelength2 = calibrate_quad(quad2, wavelength)
-    
-    fig1 = plt.figure()
-    ax1 = fig1.add_subplot(111)
-    ax1.plot(wavelength, current_band_1)
-    ax1.plot(wavelength, wavelength1,'k')
-    fig1.gca().invert_xaxis()
-    
-    fig2 = plt.figure()
-    ax2 = fig2.add_subplot(111)
-    ax2.plot(wavelength, current_band_1-wavelength1)
-    fig2.gca().invert_xaxis()
+    return [fig, nontransit_noise, wavelength]
 
+def plot_wavelength_fit(wavelength, files, index, order_num = 4):
+    #========================
+    # get the corrected band flux (using the noise, and ignoring the last 10)
+    # get the poly fit of degree 2 of the band (wavelength1)
+    img, hdr = loadfits(files[index])
+    current_band = get_current_band(img, order_num, nontransit_noise)
+    wavelength1 = get_wavelength_fit(wavelength, current_band)
+    #========================
+    # plot the polynomial fit of deg 2 on top of the spectrum
+    fig_fit = plt.figure()
+    ax1 = fig_fit.add_subplot(111)
+    ax1.plot(wavelength, current_band, label = 'Data')
+    ax1.plot(wavelength, wavelength1,'k', label = 'Fit')
+    ax1.set_title('Spectrum ' + str(index), fontsize=20)
+    ax1.set_xlabel('Wavelength [nm]', fontsize=18)
+    ax1.set_ylabel('I/I_0', fontsize=18)
+    ax1.set_xlim([np.min(wavelength), np.max(wavelength)])
+    fig_fit.gca().invert_xaxis()
+    ax1.legend(loc='best')
+    #========================
+    # plot the spectrum minus the poly fit
+    fig_flat = plt.figure()
+    ax2 = fig_flat.add_subplot(111)
+    ax2.plot(wavelength, current_band-wavelength1)
+    ax2.set_title('Spectrum ' + str(index) + ' after poly fit subtracted', fontsize=20)
+    ax2.set_xlabel('Wavelength [nm]', fontsize=18)
+    ax2.set_ylabel('I/I_0 - Fit', fontsize=18)
+    ax2.set_xlim([np.min(wavelength), np.max(wavelength)])
+    fig_flat.gca().invert_xaxis()
+    #========================
+    return [fig_fit, fig_flat]
     
-    return fig, fig1, fig2
-
 # transit_arr for sun_1_files on 11/11 [23, 24, 25, 26, 27, 28, 29, 30, 31, 
 # 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 
 # 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65]
+
+transit_arr_11_11 = [23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 
+37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 
+56, 57, 58, 59, 60, 61, 62, 63, 64, 65]
 order_num = 4
-plt.show(display_band_sun(sun_1_files, order_num))
-
-
+fig_two_indexes, nontransit_noise, wavelength = display_band_sun(sun_1_files, order_num)
+plt.show(fig_two_indexes)
+index = 63
+for index in transit_arr_11_11:
+    fig_fit, fig_flat = plot_wavelength_fit(wavelength, sun_1_files, index)
+    plt.show(fig_fit)
+    plt.show(fig_flat)
 
 
 

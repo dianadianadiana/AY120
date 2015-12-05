@@ -10,6 +10,16 @@ import Lab4_centroids as cen # import the centroid and such functions
 import LLS as LLS
 import heapq # for finding the max 3
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# SETTING UP ALL THE VARIABLES
+# (fig4 in https://drive.google.com/file/d/0B40Ynk22SiBpX2dvRFZzbEdZQmc/view)
+# - In 'Global Variables', I set up where all our data is coming from
+#   For calibration, we took 20 observations of: halogen lamp, neon, and redlaser
+# - Then I 'obtain all the folder arrays' because it will be easier to call a folder
+#   later on
+# - Then I average out the images for the calibration data, I do it for the 
+#   sun as well, but I don't think I should have but I left it there anyway
 #==================================
 # Global Variables
 #==================================
@@ -23,6 +33,8 @@ sun_objects = ['sun-1-', 'sun-2-', 'sun-scan-1-', 'sun-scan-2-', 'sun-scan-3-',
 # 11/16 sun_scan_3 001 - 076; 
 fig_path = '/Users/Diana/Desktop/Astro 120/Lab4/Figures/'
 #================================== 
+# Obtaining all the folder arrays
+#==================================
 x = ["%.3d" % i for i in range(1,21)] 
 def get_num(lower, upper):
     # ['001','002',...,'019','020']
@@ -50,7 +62,6 @@ sun_1_files2 = [datadir+'sun_data/11-17/'+sun_objects[0]+i+'.fit' for i in get_n
 sun_3_files2 = [datadir+'sun_data/11-17/'+sun_objects[5]+i+'.fit' for i in get_num(1,101)]
 sun_4_files2 = [datadir+'sun_data/11-17/'+sun_objects[6]+i+'.fit' for i in get_num(1,101)]
 '''
-
 #==================================
 def avg_fits_img(files_arr): # taken from lab 3
     """ takes all the fits in the 'files_arr' and makes them into one average fits array (img) 
@@ -63,6 +74,8 @@ def avg_fits_img(files_arr): # taken from lab 3
         avg_arr += arr
     return avg_arr/(len(files_arr))
 #==================================   
+# averaging the images 
+#==================================
 img_halogen = avg_fits_img(halogen_files)
 img_neon = avg_fits_img(neon_files)
 img_neon_2 = avg_fits_img(neon_2_files)
@@ -81,10 +94,9 @@ img_sun_1_2 = avg_fits_img(sun_1_files1) # 11/17
 img_sun_3_2 = avg_fits_img(sun_3_files1)
 img_sun_4_2 = avg_fits_img(sun_4_files1)
 '''
-#==================================   
+#==================================
 def normalize(img):
     return img / np.median(img)
-    
 def loadfits(fil):
     """ Input: 
             fil: the filename, with the syntax of 'd100.fits'
@@ -96,10 +108,81 @@ def loadfits(fil):
     hdr= hdulist[0].header # the header
     print "Loading file for", hdr['object']
     return [img, hdr]
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+#==================================
+#================================== 
+# Calibration
+#==================================
+#==================================
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#(1) Finding the Bands using Halogen Lamp; 
+#    - I wrote the 'find_bands' program to automatically find 
+#    all the echelle bands: The way it works is that I input the Halogen averaged 
+#    image and then found all the rows where there were over 40 (maybe I changed 
+#    the number later) pixels that were over the limit (like 1.5*avg). Neighboring 
+#    rows were put into the same band. This already showed us how the lower orders
+#    (like m=4/m=34) have a much thicker band (~20 pixels) whereas higher orders
+#    have a much thinner band (~10 pixels). Additionally, higher orders became much
+#    closer to eachother than the lower orders
+#    - Note: once I ran this function, I decided to copy n paste the returned array
+#    so I don't need to keep on calling the function (aka wasting time)
+#    - The thicker, spread apart bands (aka the lower order bands) are on the bottom
+#    of the image and they are the longer wavelengths (redder) and the thinner,
+#    closer together bands (aka the higher order bands) are on the top and they
+#    are the shorter wavelengths (bluer) -- we figure this out after matching the 
+#    pixels to corresponding wavelengths
+#(2) Obtaining the flux of each echelle order using the bands from part 1
+#    - the avg_img fn takes in an img and the lower and upper bound, sums up the 
+#    flux of each row in that bound and then takes the average. the output is an
+#    array that when plotted, it is a spectrum (note: this is a helper fn)
+#    - the get_band_flux takes the above fn (avg_img) to calculate the band flux
+#    - then we just plot the pixel vs intensity of the band
+#    - the display_all_bands shows all the bands on top of eachother, which in 
+#    reality should not be as interpreted as true but rather, it gives us a better 
+#    idea of how the pixels (horizontally) correspond with wavelength -- I found
+#    that longer wavelengths (redder) are on the left, and shorter wavelengths
+#    (bluer) are on the right 
+#        - this helps us when figuring out which wavelength (longer or shorter) do
+#        we assign to each centroid
+#        - the reason this method of displaying all the bands does not work, is
+#        because of two reasons: (i) the end (right) of one band is the beginning
+#        (left) of the band with an order higher; (ii) sounds great that they 
+#        overlap, but they don't do see desirably, the distance between centroids
+#        in the lower order one is less than the distance in the higher order one
+#        (because of diffraction)
+#    - I then included a fn that displays the actual img (aka the 2D array)
+#(3a) Finding the centroids of each band and then find the max peaks and centroids 
+#   - deciding whether to use the 2D centroid alogrithm from lab3 or the 1D 
+#   centroid algorithm from lab2 (decided to do 1D), why -> because it was easy 
+#   to obtain a 1D spectra of each order and calculate everything from there
+#   - made variables for the neon spec (3 to 8) and then made variables for the 
+#   centroids (3 to 7) and also found that the error in centroids was around 10e-5
+#   - created a dictionary where you could just call a band order (like 2) and it 
+#   would give you the 2 element array with the corresponding neonspec and centroids
+#(3b) Figuring out which pixels correspond to which wavelengths using the red laser
+#(had to match them up) did this for orders 3-8 (I think)
+#    - we know that the red laser is at 653nm so we figure out that it is in the 
+#    4th (34th order) and from there we can deduce the other corresponding 
+#    wavelengths for the other pixels
+#(4) Fitting the centroids to the known wavelengths using the LLS method from lab2, 
+#and finding that the best fit is the quadratic *surprise surprise* And getting the
+#residuals for each band
+#    - we fit the centroids to the known wavelengths (similar to lab2) yeah
+#(5) Finally applying the fit to the orders
+#    - now i just have two functions that apply a quad fit and get the wavelength
+#    calibration for a given order, respectfully. I created a wavelength dict so 
+#    I can just get the calibrated wavelength when I input an order_num (3 to 7)
+#    - we only need to take into account one order calibration, so i chose m=34 
+#    because it had a strong Halpha line
+
+#==================================
 def find_bands(img):
-    ''' 
-    Purpose: This is so we can automatically determine where the bands are 
+    '''  Purpose: This is so we can automatically determine where the bands are 
             (using the halogen image)
     Returns: an arr of pairs, where the first and second element of a pair
         are the starting and ending rows of a band
@@ -111,8 +194,7 @@ def find_bands(img):
         Careful: at lower indexes, the bands become really faint, so this may not
         work for really high orders of m
         Note: m = 1 corresponds to the last elem of the returned array, arr[-1]
-              m = 2 -- arr[-2] and so on.
-    '''
+              m = 2 -- arr[-2] and so on.'''
     avg = np.median(img)
     lim = 1.5 * avg #1.5 was arbitrary, worked pretty well 
     # produces an array where the each index corresponds to row, and the value
@@ -121,7 +203,7 @@ def find_bands(img):
     print count_arr
     row_arr = []
     for row, elem in enumerate(count_arr):
-        if elem > 40: # if over 50 pixels reach the limit, then we consider them
+        if elem > 40: # if over 40 pixels reach the limit, then we consider them
             row_arr.append(row)
     print row_arr
     # below, the rows are grouped
@@ -152,11 +234,13 @@ def find_bands(img):
 m_arr = [[268, 271], [298, 308], [334, 346], [373, 384], [414, 425],
         [457, 467], [503, 511], [550, 558], [601, 608], [652, 660], 
         [707, 717], [765, 776], [826, 840], [891, 908], [960, 980]] #1.5lim, >40
-
+#==================================
 def avg_img(img, lower_bound, upper_bound): # taken and modified 'avg_fits_img' from lab 3
-    """ This takes the img and the lower_bound and upper_bound for the rows
-    It adds each row from lower_bound to upper_bound and takes the average
-    Return: one array with the averaged values, 'band array' """
+    """ This takes the img and the lower_bound and upper_bound for the rows that we
+            want to average
+        It adds each row from lower_bound to upper_bound and takes the average
+        Return: one array with the averaged values, 'band array', such that when you plot
+            it, it is a spectrum (where x axis is in pixels)"""
     #apparently this does the same thing, but I wanted to write it out myself
     #np.sum(bias_data_arr, axis = 0)/len(bias_data_arr)
     row_arr = [img[row, :] for row in np.arange(lower_bound, upper_bound + 1)]
@@ -237,6 +321,7 @@ centroid_pair_arr = np.transpose([x_cen_vals, y_cen_vals])
 #plt.show(fig_centroids)
 #plt.show(display_fits(img_redlaser + img_neon))
 #plt.show(display_band(img_neon, 3))
+#==================================
 
 #==================================
 #==================================
@@ -316,8 +401,9 @@ centroid_redlaser, certoid_redlaser_error = get_centroids_1D(img_redlaser, 4)
 #neonspec4 = np.append(neonspec4, 653)
 
 # made a dict to easily call centroids and neonspec based on which order I want
-cen_spec_dict = {3:[centroids3,neonspec3],4:[centroids4,neonspec4],5:[centroids5,neonspec5],
-                6:[centroids6,neonspec6],7:[centroids7,neonspec7]}
+cen_spec_dict = {3:[centroids3,neonspec3],4:[centroids4,neonspec4],
+                5:[centroids5,neonspec5], 6:[centroids6,neonspec6],
+                7:[centroids7,neonspec7]}
 #==================================
 print "========= centroids (using 1D) 8,7,6,5,4,3 ========="
 print sorted(centroids8)
@@ -339,12 +425,23 @@ m = 4
 # FINISH THE CALLIBRATION 
 #==================================
 def calibrate_quad(quad, x):
+    """An easy way to just get automatically apply the quad fit"""
     return quad[2]*x*x + quad[1]*x + quad[0]
+def get_wavelength(order_num):
+    """Gets the calibration of pixel to wavelength for the xaxis for a given order"""
+    centroids, spec = cen_spec_dict[order_num]
+    centroids, spec = sorted(centroids), sorted(spec)[::-1] # reverse the spec cause short lambda (left) to long lambda (right)
+    fit = [centroids, spec]
+    quad = LLS.linleastsquares(fit, 3)
+    wavelength = calibrate_quad(quad, np.arange(1048))
+    return wavelength # size = 1048
+#set up a dictionary that contains all the wavelength calibrations
+cal_wavelengths_dict = {}
+for i in range(3, 8): # orders 3 to 7
+    cal_wavelengths_dict[i] = get_wavelength(i)
     
 def plot_calibration(img, m):
-    quad = idealfigs_residuals(cen_spec_dict[m])[2]
-    wavelength = calibrate_quad(quad, np.arange(1048))
-
+    wavelength = cal_wavelengths_dict[m]
     fig = plt.figure()
     flux_arr = get_band_flux(img, m)
     plt.plot(wavelength, flux_arr)
@@ -355,8 +452,8 @@ def plot_calibration(img, m):
 #plt.show(plot_calibration(img_sun_1,4))
 def plot_calibration_sun(fil, m): #for one file!
     img, hdr = loadfits(fil)
-    quad = idealfigs_residuals(cen_spec_dict[m])[2]
-    wavelength = calibrate_quad(quad, np.arange(1048))
+    wavelength = cal_wavelengths[m]
+
     exptime, date, filename, jd = hdr['EXPOSURE'], hdr['DATE-OBS'], hdr['OBJECT'], hdr['JD']
     date = date[5:7]+'/'+date[8:10]+'/'+date[:4] #format the date to look prettier
     fig = plt.figure()
@@ -369,25 +466,91 @@ def plot_calibration_sun(fil, m): #for one file!
     return fig
 
 #plt.show(plot_calibration_sun(sun_1_files[20],4))
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
 #==================================
 #==================================
 #SUNS FLUX OVER TIME
 #==================================
 #==================================
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#(1) Sum up the total flux of a file/image & find the time of each file observation
+#    - to get the TIME of each observation, we can not just assume that the 
+#    exposure time is the delta t between observations; so we must obtain the 
+#    julian day [JD] of each file and convert that to seconds and then that is
+#    our time array
+#    - to get the FLUX of each of each observation, we look at the img of one file,
+#    and add up the fluxes of each band in that image (I summed up over the first
+#    15 bands). Might've been easier to just sum up the total flux of the whole
+#    image but I was afraid of picking up false flux readings, and so I think
+#    defining the total flux to be the fluxes from the bands is a safe route for
+#    minimal errors in calculating total flux
+#(2) Fixing the flux array and normalizing it
+#    - So I just had the raw total flux of each file in the flux array at the start
+#    - Then I found out which files are part of the transit of the sun; I took the 
+#    non-transit fluxes, and took the average. I subtracted this average to account
+#    for the scattering light the optical fiber cable picks up when it is not facing
+#    the Sun. 
+#    - Then I divided the flux array by its max value 
+#    - So now the flux array is I/I_max (I/I_0)
+#(3) Find delta t, t_0, and I_0 by 
+#    - eqn 8 (https://drive.google.com/file/d/0B40Ynk22SiBpX2dvRFZzbEdZQmc/view)
+#    - so this is a manual iterative process in finding the delta t (the time 
+#    from the center of the transit to the edge), t_0 (the center of the transit
+#    time), and I_0 (though I found that I_0 will more or less be around 1 because
+#    of how I rescaled the flux array to be I/I_max)
+#    - To start, I just found a ballpark/intial guess for delta t by simply 
+#    taking the difference in time between the start of the transit and the end
+#    and divided it by two. 
+#    To find t_0 I simply took the difference in indexes of the transit start and 
+#    end and divided it by two and found the time at that index.
+#    To find I_0, I took the intensity at where the t_0 location index is.
+#    - Now, I put in these parameters to the Intensity equation (aka the fit) and
+#    then I plotted it against the actual data, visually I could see how it was 
+#    a little off: so I plotted a residuals graph and calculated the rms. I was 
+#    changing the parameters for the fit to see what parameters give me the smallest
+#    rms error. However much the residuals did help, I felt like it was hard to 
+#    find a fit that exactly matched the limb darkening portion of the transit, so
+#    that's why I think the residuals/rms error were skewed
+#================================== 
+#~ Results for 11/11/15 Sun-1
+#    spectrum files sun transit = [23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 
+#    34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 
+#    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65]
+#    t0 loc 44 (location of where t_0 is)
+#    Initial guesses:
+#        delt 134.999969482
+#        t_0 141.499984741
+#        I_0 0.994419608416
+#        rms:  0.0262863329707
+#    After guessing and checking:
+#        delt = 136.4
+#        t_0 = 142.5
+#        I_0 = 0.994419608416
+#        rms: 0.0241672990943
+#    After guessing and checking:
+#        delt = 136.4
+#        t_0 = 142.5
+#        I_0 = 0.994419608416
+#        rms: 0.0237264323039
+#==================================
+
 def get_flux_over_time(files):
     """ This takes in a directory (files) and finds the total flux of each file.
     To find the total flux of each file, I summed up the fluxes from each band 
     (in order to ensure no "false" flux readings were considered). 
     Returns: an array with the summed fluxes of each file in the 'files' dir"""
-    flux_arr = []
-    time_arr = []
-    hdr = loadfits(files[0])[1]
-    startjd = hdr['JD']*24*3600
+    flux_arr, time_arr = [], []
+    hdr_0 = loadfits(files[0])[1]
+    startjd = hdr_0['JD']*24*3600 # in seconds
     for k in range(len(files)):
         fil = files[k]
         img, hdr = loadfits(fil)
-	jd = hdr['JD']*24*3600
+	jd = hdr['JD']*24*3600 # in seconds
 	time_arr.append(jd-startjd)
         temp_flux = 0
         for num in range(len(m_arr)):
@@ -423,6 +586,7 @@ def intensity(t_arr, I_0, t_0, delt, flux_arr, arr):
         else:
             I_arr.append(I)
     return I_arr
+    
 def sun_flux_over_time_fig(files):
     """ This funtion just plots the total relative flux over time """
     time_arr, flux_arr = get_flux_over_time(files)
@@ -434,7 +598,7 @@ def sun_flux_over_time_fig(files):
     transit_arr, delt, t_0, I_0, t_0_loc = get_delt(time_arr, flux_arr)
     flux_arr -= np.median(np.delete(flux_arr, transit_arr))
     flux_arr = flux_arr / np.max(flux_arr)
-    I_0 = flux_arr[t_0_loc] #because i rescaled the flux_arr
+    I_0 = flux_arr[t_0_loc] #because I just rescaled the flux_arr
     
     # Figure of just the flux vs time
     delt_str = "{:.6f}".format(delt)
@@ -445,37 +609,68 @@ def sun_flux_over_time_fig(files):
     plt.plot(time_arr, flux_arr , 'o', label = 'delta t: ' + delt_str + 's')
     plt.axvline(x=t_0, c='r',ls ='--', linewidth =.75, label = 't_0 = ' + str(t_0))
     for point in transit_arr:
-         plt.axvline(x=time_arr[point], c='r',ls ='--', linewidth =.75)
+         plt.axvline(x=time_arr[point], c='r',ls ='--', linewidth =.5)
     plt.tight_layout()
     plt.legend(loc = 'best')
     plt.xlim([np.min(time_arr), np.max(time_arr)]); 
     plt.ylim([-.1,1.1])
     
+    
+    t=time_arr
+    I_0 = 1
+    delt = 136.4
+    t_0 = 142.5
+    delt_str = "{:.1f}".format(delt)
+    t_0_str = "{:.1f}".format(t_0)
+    I_0_str = "{:.4f}".format(I_0)
+
+    i_arr = intensity(t, I_0, t_0, delt/2, flux_arr, transit_arr) #set t_0 to be 0
     # Fitted figure
-    fig1 = plt.figure(figsize = (12,5))
+    fit_fig = plt.figure()
     plt.title('Flux versus time for ' + filename + ' on ' + date + '\nwith exposure time: ' 
                 + str(exptime) + ' seconds', fontsize = 20)
-    t = np.arange(0 - delt , 0 + delt + 1 , .1) #go from -delt to delt with .1 increments for the fit
-    i_arr = intensity(t, I_0, 0, delt/2, flux_arr, transit_arr) #set t_0 to be 0
-    plt.plot(t, i_arr, label = 'Fit, delta t: ' + delt_str + 's')
-    plt.plot(np.array(time_arr)-t_0, flux_arr, 'o', label = 'Data') #plot the original data but offset of t_0 to make t_0 be at 0
+    #t = np.arange(0 - delt , 0 + delt + 1 , .1) #go from -delt to delt with .1 increments for the fit
+    #i_arr = intensity(t, I_0, 0, delt/2, flux_arr, transit_arr) #set t_0 to be 0
+
+    plt.plot(t, i_arr, label = 'Fit\n' +
+            r'$\Delta t$' + ': ' + delt_str + r'$\pm$' + '1.4s' + '\n' + 
+            r'$t_0$' + ': ' + t_0_str + r'$\pm$' + '.8s' + '\n' + 
+            r'$I_0$' + ': ' + I_0_str)
+    plt.plot(np.array(time_arr), flux_arr, 'o', label = 'Data') #plot the original data but offset of t_0 to make t_0 be at 0
     jd_t0 = loadfits(files[t_0_loc])[1]['JD']
-    plt.xlabel('Time - ' + str(jd_t0*24*3600)+' [s]', fontsize=18); plt.ylabel('I/I_0', fontsize = 18)
+    plt.xlabel('Time - ' + str(jd_t0*24*3600)+' [JD in s]', fontsize=18); 
+    plt.ylabel(r'$I / I_0$', fontsize = 18)
     plt.tight_layout()
-    plt.legend(loc = 'best')
-    plt.xlim([np.min(np.array(time_arr)-t_0), np.max(np.array(time_arr)-t_0)]); 
+    plt.legend(loc = 'best', framealpha=0.5, fancybox=True)
+    #plt.xlim([np.min(np.array(time_arr)-t_0), np.max(np.array(time_arr)-t_0)]); 
     plt.ylim([-.1,1.1])
     
-    return fig, fig1
+    residuals_fig = plt.figure()
+    t_new = time_arr
+    i_arr_new = intensity(t_new, I_0, t_0, delt/2, flux_arr, transit_arr) #set t_0 to be 0
+    res = i_arr_new - flux_arr
+    rms = np.sqrt(np.mean(res**2))
+    plt.plot(t_new, res, 'o', label = str(rms))
+    plt.title('delt: ' +str(delt) + ' t_0: ' + str(t_0) + ' I_0: ' +str(I_0))
+    plt.legend()
+    print 'RMS', rms
+    
+    return fig, fit_fig, residuals_fig
     
 #plt.show(display_fits(img_sun_1)) #the fits img 
-#plt.show(sun_flux_over_time_fig(sun_1_files)) #the flux vs time
+plt.show(sun_flux_over_time_fig(sun_1_files)) #the flux vs time
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #==================================
 #==================================
-# PLOTTING THE SUN'S DIFFERENCE
+# PLOTTING THE SUN'S DIFFERENCE IN SPECTRA
 #==================================
 #==================================
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 # FOR PLOTTING THE DOPPLER SHIFT
 # (fig4 in https://drive.google.com/file/d/0B40Ynk22SiBpX2dvRFZzbEdZQmc/view)
 # - I call in 'files' and 'ordernum' as parameters, where the files are the sun files
@@ -497,6 +692,8 @@ def sun_flux_over_time_fig(files):
 #   fit for the order_num I input -- and apply the fit and also ignore the annoying 
 #   points
 # - I just plot everything to finish it off!
+#==================================
+
 def get_current_band(img, order_num, noise, ignore_index = 10):
     # this is a helper function
     band = get_band_flux(img, order_num) - noise
@@ -531,11 +728,7 @@ def display_band_sun(files, order_num):
     time_change_str = "{:.1f}".format(time_change)
     #========================
     # Calibration for the x axis
-    centroids, spec = cen_spec_dict[order_num]
-    centroids, spec = sorted(centroids), sorted(spec)[::-1] # reverse the spec cause short lambda (left) to long lambda (right)
-    fit = [centroids, spec]
-    quad = LLS.linleastsquares(fit, 3)
-    wavelength = calibrate_quad(quad, np.arange(1048))
+    wavelength = cal_wavelengths_dict[order_num]
     wavelength = wavelength[:-ignore_index]
     #========================
     # Plot everything Yay!
@@ -600,12 +793,10 @@ fig_two_indexes, nontransit_noise, wavelength = display_band_sun(sun_1_files, or
 plt.show(fig_two_indexes)
 index = 63
 
-
 #for index in transit_arr_11_11:
 #    fig_fit, fig_flat = plot_wavelength_fit(wavelength, sun_1_files, index)
 #    plt.show(fig_fit)
 #    plt.show(fig_flat)
-
 
 def ham_it_up(arr):
     return np.hamming(len(arr)) * arr
@@ -624,12 +815,12 @@ def get_shift_axis(cross_corr):
         shift_axis=np.arange(-n_pix/2.,n_pix/2.)
     return shift_axis
 def get_shift(shift_axis, cross_corr, num = 3):
+    #gets the indexes of the max 3 points
     max_three = heapq.nlargest(num, range(len(cross_corr)), cross_corr.__getitem__)
     max_three = sorted(max_three)
     #print max_three
     #print shift_axis[max_three]
     #print cross_corr[max_three]
-    
     fit = [shift_axis[max_three], cross_corr[max_three]]
     quad = LLS.linleastsquares(fit, 3)
     x = np.linspace(-1,1, 100)
@@ -637,8 +828,6 @@ def get_shift(shift_axis, cross_corr, num = 3):
     shift_max_y = np.amax(max_three_fit)
     shift_max_x = x[np.argmax(max_three_fit)] 
     return [shift_max_x, shift_max_y, x, max_three_fit]
-    
-
     
 def corr_plot(flux1, flux2):
     #calculate the cross correlation (y-axis)
@@ -658,8 +847,9 @@ def corr_plot(flux1, flux2):
     plt.subplot(2,1,2)
     plt.plot(shift_axis,cross_corr,'g',linewidth=1)
     plt.plot(shift_axis,cross_corr,'bo',linewidth=1)
+    plt.axvline(x = shift_max_x)
     plt.plot(x, max_three_fit,'k', linewidth = 2, label = str(shift_max_x))
-    plt.xlim([-15,15])
+    plt.xlim([-2,2])
     plt.xlabel('Shift Axis', fontsize=16) ; plt.ylabel('Cross-Correlation [Unit$^2$]', fontsize=16)
     plt.legend(loc=0)
     plt.tight_layout()
@@ -667,34 +857,76 @@ def corr_plot(flux1, flux2):
 folder = sun_1_files
 one = get_flux_for_correlation(wavelength, folder, 60)
 two = get_flux_for_correlation(wavelength, folder, 44)
-plt.show(corr_plot(one, two))
-#one = get_flux_for_correlation(wavelength, folder, index)
-#two = get_flux_for_correlation(wavelength, folder, 30)
+#plt.show(corr_plot(one, two))
+
+#t_0_flux = get_flux_for_correlation(wavelength, folder, 44)
+#for index in range(len(folder)):
+#    t_0_flux += get_flux_for_correlation(wavelength, folder, index)
+#t_0_flux /= len(folder)
+#shift_arr = []
+#for index in transit_arr_11_11:
+#    curr_flux = get_flux_for_correlation(wavelength, folder, index)
+#    plt.show(corr_plot(curr_flux, t_0_flux))
+
+def shift(t_0_index, transit_arr, wavelength, folder):
+    #=========================
+    # get the shifted array
+    t_0_flux = get_flux_for_correlation(wavelength, folder, t_0_index)
+    for index in range(len(folder)):
+        t_0_flux += get_flux_for_correlation(wavelength, folder, index)
+    t_0_flux /= len(folder)
+    shift_arr = []
+    for index in transit_arr_11_11:
+        curr_flux = get_flux_for_correlation(wavelength, folder, index)
+        cross_corr = get_crossed(curr_flux, t_0_flux)
+        shift_axis = get_shift_axis(cross_corr)
+        x_shift = get_shift(shift_axis, cross_corr)[0]
+        shift_arr.append(x_shift)
+    print shift_arr
+    shift_fig = plt.figure()
+    plt.plot(shift_arr, 'o')
+    plt.ylabel('Pixel shift')
+    
+    fit_fig = plt.figure()
+    x = np.arange(len(shift_arr))
+    yint, m = LLS.linleastsquares([x, shift_arr],2)
+    shift_fit = x*m + yint
+    plt.plot(x, shift_arr, 'o')
+    plt.plot(x, shift_fit,'r', label = str(m) + '   ' + str(yint))
+    plt.title('Doppler Shift ',size=20)
+    plt.xlabel('Time', size=18)
+    plt.ylabel('Pixel Shift', size=18)
+    plt.legend()
+    
+    residuals_fig = plt.figure()
+    res = shift_fit - shift_arr
+    plt.plot(x,res,'go')
+    return shift_arr, shift_fig, fit_fig, residuals_fig
 # 44th spectrum is the t_0, so go from transit_arr[0] to transit_arr[-1]
 t_0_index = 44
-t_0_flux = get_flux_for_correlation(wavelength, folder, t_0_index)
-two = get_flux_for_correlation(wavelength, folder, 44)
-shift_arr = []
+shift_arr, shift_fig, fit_fig, residuals_fig = shift(t_0_index, transit_arr_11_11, wavelength, folder)
+#plt.show(shift_fig)
 
-for index in transit_arr_11_11:
-    print index
-    curr_flux = get_flux_for_correlation(wavelength, folder, index)
-    cross_corr = get_crossed(curr_flux, t_0_flux)
-    shift_axis = get_shift_axis(cross_corr)
-    x_shift = get_shift(shift_axis, cross_corr)[0]
-    shift_arr.append(x_shift)
-    
-#    one = get_flux_for_correlation(wavelength, folder, index)
-#    fig, shift = corr_plot(one, two)
-#    #plt.show(fig)
-#
-#    #plt.show(corr_plot(curr_flux, t_0_flux))
-#    shift_arr.append(shift)
+shift = np.max(shift_arr)
+print 'SHIFT', shift
 
+def calculate_vrot(lamb_0, lamb_shift):
+    c = 299792 #km/s
+    return (lamb_shift-lamb_0)/lamb_0 * c
 
-print shift_arr
-def show_this(shift_arr):
-    fig = plt.figure()
-    plt.plot(shift_arr, 'o')
-    return fig
-plt.show(show_this(shift_arr))
+def get_speed(shift, order_num = 4):
+    centroids, spec = cen_spec_dict[order_num]
+    centroids, spec = sorted(centroids), sorted(spec)[::-1] # reverse the spec cause short lambda (left) to long lambda (right)
+    fit = [centroids, spec]
+    quad = LLS.linleastsquares(fit, 3) #get the a_0 and a_1 and a_2
+    print quad
+    vel_arr = [] #keeps all the velocities which will be averaged later
+    for i in range(1048):
+        lambda_new = calibrate_quad(quad, shift+i) # calculate the wavelength at pixel = (shift+i)
+        lambda_0 = calibrate_quad(quad, i) # calculate the wavelength at pixel = i
+        vel_arr.append(calculate_vrot(lambda_0, lambda_new))
+    return np.sum(vel_arr)/len(vel_arr) # take the average (v will be in m/s)
+
+def get_sun_radius(vel, period):
+    period = period * 24 * 3600 # get period from days to seconds
+    return (1./(2*np.pi)) * vel * period

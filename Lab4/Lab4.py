@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #==================================
 #Import Packages
 #==================================
@@ -10,6 +11,13 @@ import Lab4_centroids as cen # import the centroid and such functions
 import LLS as LLS
 import heapq # for finding the max 3
 
+def my_std(arr):
+    """Calculates the STD of the arr"""
+    mu = np.mean(arr)
+    sq_sum = np.sum([(elem-mu)**2 for elem in arr]) #sums (x_i-mu)^2
+    return np.sqrt(sq_sum/(len(arr)-1))
+def my_sdom(arr):
+    return my_std(arr)/(np.sqrt(len(arr)))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # SETTING UP ALL THE VARIABLES
@@ -45,22 +53,23 @@ neon_files = [datadir+objects[1]+i+'.fit' for i in x]
 neon_2_files = [datadir+objects[2]+i+'.fit' for i in x]
 redlaser_files = [datadir+objects[3]+i+'.fit' for i in x]
 
-sun_1_files = [datadir+'sun_data/11-11/'+sun_objects[0]+i+'.fit' for i in get_num(1,88)]
-sun_2_files = [datadir+'sun_data/11-11/'+sun_objects[1]+i+'.fit' for i in get_num(1,101)]
+sun_files_1_11_11 = [datadir+'sun_data/11-11/'+sun_objects[0]+i+'.fit' for i in get_num(1,88)]
+sun_files_2_11_11 = [datadir+'sun_data/11-11/'+sun_objects[1]+i+'.fit' for i in get_num(1,101)]
 
-sun_1_files1 = [datadir+'sun_data/11-7/'+'sun01-'+i+'.fit' for i in get_num(1,191)]
-'''
-sun_scan_1_files = [datadir+'sun_data/11-12/'+sun_objects[2]+i+'.fit' for i in get_num(1,74)]
-sun_scan_2_files = [datadir+'sun_data/11-12/'+sun_objects[3]+i+'.fit' for i in get_num(1,77)]
-sun_scan_3_files = [datadir+'sun_data/11-12/'+sun_objects[4]+i+'.fit' for i in get_num(1,101)]
+sun_files_1_11_07 = [datadir+'sun_data/11-7/'+'sun01-'+i+'.fit' for i in get_num(1,191)]
 
-sun_scan_1_files1 = [datadir+'sun_data/11-16/'+sun_objects[2]+i+'.fit' for i in get_num(1,70)]
-sun_scan_2_files1 = [datadir+'sun_data/11-16/'+sun_objects[3]+i+'.fit' for i in get_num(1,64)]
-sun_scan_3_files1 = [datadir+'sun_data/11-16/'+sun_objects[4]+i+'.fit' for i in get_num(1,77)]
+sun_files_1_11_12 = [datadir+'sun_data/11-12/'+sun_objects[2]+i+'.fit' for i in get_num(1,74)]
+sun_files_2_11_12 = [datadir+'sun_data/11-12/'+sun_objects[3]+i+'.fit' for i in get_num(1,77)]
+sun_files_3_11_12 = [datadir+'sun_data/11-12/'+sun_objects[4]+i+'.fit' for i in get_num(1,101)]
 
-sun_1_files2 = [datadir+'sun_data/11-17/'+sun_objects[0]+i+'.fit' for i in get_num(1,85)]
-sun_3_files2 = [datadir+'sun_data/11-17/'+sun_objects[5]+i+'.fit' for i in get_num(1,101)]
-sun_4_files2 = [datadir+'sun_data/11-17/'+sun_objects[6]+i+'.fit' for i in get_num(1,101)]
+sun_files_1_11_16 = [datadir+'sun_data/11-16/'+sun_objects[2]+i+'.fit' for i in get_num(1,70)]
+sun_files_2_11_16 = [datadir+'sun_data/11-16/'+sun_objects[3]+i+'.fit' for i in get_num(1,64)]
+sun_files_3_11_16 = [datadir+'sun_data/11-16/'+sun_objects[4]+i+'.fit' for i in get_num(1,77)]
+
+''' These are pretty bad files lol
+sun_1_files_11_17 = [datadir+'sun_data/11-17/'+sun_objects[0]+i+'.fit' for i in get_num(1,85)]
+sun_3_files_11_17 = [datadir+'sun_data/11-17/'+sun_objects[5]+i+'.fit' for i in get_num(1,101)]
+sun_4_files_11_17 = [datadir+'sun_data/11-17/'+sun_objects[6]+i+'.fit' for i in get_num(1,101)]
 '''
 #==================================
 def avg_fits_img(files_arr): # taken from lab 3
@@ -81,8 +90,8 @@ img_neon = avg_fits_img(neon_files)
 img_neon_2 = avg_fits_img(neon_2_files)
 img_redlaser = avg_fits_img(redlaser_files)  
 
-img_sun_1 = avg_fits_img(sun_1_files) # 11/11
-img_sun_2 = avg_fits_img(sun_2_files)
+img_sun_1 = avg_fits_img(sun_files_1_11_11) 
+#img_sun_2 = avg_fits_img(sun_files_2_11_11)
 '''
 img_sun_scan_1 = avg_fits_img(sun_scan_1_files) #11/12
 img_sun_scan_2 = avg_fits_img(sun_scan_2_files)
@@ -106,7 +115,7 @@ def loadfits(fil):
     hdulist = pf.open(fil)
     img = hdulist[0].data # the matrix data
     hdr= hdulist[0].header # the header
-    print "Loading file for", hdr['object']
+    #print "Loading file for", hdr['object']
     return [img, hdr]
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -337,6 +346,7 @@ def idealfigs_residuals(cen_spec): #taken from Lab1
     print 'neonspec', spec 
     fit = [centroids, spec]
     linear = LLS.linleastsquares(fit, 2)
+    print 'LINEAR', linear[1], linear[0]
     quad = LLS.linleastsquares(fit, 3)
     #cubic = LLS.linleastsquares(fit, 4)
     
@@ -364,16 +374,16 @@ def idealfigs_residuals(cen_spec): #taken from Lab1
     lin_r = ideal_linear - spec 
     quad_r = ideal_quad -  spec
     #cubic_r = ideal_cubic - spec
-    plt.scatter(centroids, lin_r,90,'k','^',label = 'linear residuals')
-    plt.scatter(centroids, quad_r,70,'r', 'o',label = 'quadratic residuals')
+    plt.scatter(centroids, lin_r, 90, 'k', '^', label = 'linear residuals')
+    plt.scatter(centroids, quad_r, 70, 'r', 'o', label = 'quadratic residuals')
     #plt.scatter(centroids, cubic_r,70,'b', '2',label = 'cubic residuals')
-    plt.title('Residuals', fontsize = 18)
+    plt.title('Residuals', fontsize = 22)
     plt.axhline(y = 0, ls='--',c='k')
     plt.xlim([0,1024])
     plt.xlabel('Pixels',fontsize=20);    plt.ylabel('Difference of Fit and Actual Value',fontsize=20)
-    plt.legend(numpoints=1, loc = 'best', fontsize = 14)
+    plt.legend(numpoints=1, loc = 'best', fontsize = 18)
     plt.tick_params(labelsize=14)
-    return idealfig, residuals_fig, quad
+    return idealfig, residuals_fig
 #==================================
 def get_centroids_1D(img, order_num, width = 10, lower_limit = 300):
     intensity_arr = get_band_flux(img, order_num)
@@ -404,6 +414,8 @@ centroid_redlaser, certoid_redlaser_error = get_centroids_1D(img_redlaser, 4)
 cen_spec_dict = {3:[centroids3,neonspec3],4:[centroids4,neonspec4],
                 5:[centroids5,neonspec5], 6:[centroids6,neonspec6],
                 7:[centroids7,neonspec7]}
+#plt.show(idealfigs_residuals(cen_spec_dict[4]))
+
 #==================================
 print "========= centroids (using 1D) 8,7,6,5,4,3 ========="
 print sorted(centroids8)
@@ -418,7 +430,7 @@ print "=================================================="
 m = 4
 #plt.show(fig_wo_centroids)
 #plt.show(display_band(img_neon, m, cen_spec_dict[m][0]))
-#ideal_fig, residuals_fig, quad = idealfigs_residuals(cen_spec_dict[m])
+#ideal_fig, residuals_fig = idealfigs_residuals(cen_spec_dict[m])
 #plt.show(ideal_fig)
 #plt.show(residuals_fig)
 #==================================
@@ -433,6 +445,8 @@ def get_wavelength(order_num):
     centroids, spec = sorted(centroids), sorted(spec)[::-1] # reverse the spec cause short lambda (left) to long lambda (right)
     fit = [centroids, spec]
     quad = LLS.linleastsquares(fit, 3)
+    print "ORDER NUM", order_num
+    print quad
     wavelength = calibrate_quad(quad, np.arange(1048))
     return wavelength # size = 1048
 #set up a dictionary that contains all the wavelength calibrations
@@ -452,7 +466,7 @@ def plot_calibration(img, m):
 #plt.show(plot_calibration(img_sun_1,4))
 def plot_calibration_sun(fil, m): #for one file!
     img, hdr = loadfits(fil)
-    wavelength = cal_wavelengths[m]
+    wavelength = cal_wavelengths_dict[m]
 
     exptime, date, filename, jd = hdr['EXPOSURE'], hdr['DATE-OBS'], hdr['OBJECT'], hdr['JD']
     date = date[5:7]+'/'+date[8:10]+'/'+date[:4] #format the date to look prettier
@@ -466,6 +480,25 @@ def plot_calibration_sun(fil, m): #for one file!
     return fig
 
 #plt.show(plot_calibration_sun(sun_1_files[20],4))
+
+def plot_multiple_LLS(m1,m2,m3,m4):
+    """ Lindsey's idea of plotting multiple fits"""
+    fig = plt.figure()
+    for m in [m1,m2,m3,m4]:
+        print cen_spec_dict[m]
+        print cal_wavelengths_dict[m]
+        plt.plot(range(1048), cal_wavelengths_dict[m], label = 'm = ' + str(m+30))
+        plt.scatter(cen_spec_dict[m][0],cen_spec_dict[m][1][::-1],s=60,c='k')
+    plt.title('Least Squares Fitting', fontsize =20);    
+    plt.xlabel('Pixels',fontsize=20);    plt.ylabel('Wavelength [nm]',fontsize=20)
+    plt.xlim([1,1048])
+    plt.legend(numpoints=1, loc = 'best', fontsize = 14)
+    plt.tick_params(labelsize=14)
+    plt.tight_layout()
+    return fig
+#plt.show(plot_multiple_LLS(3,4,5,6))
+
+###### UPTO NOW WE ONLY NEEDED THE CALLIBRATION DATA, NOW WE NEED SUN DATA #####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
@@ -567,8 +600,8 @@ def get_delt(time_arr, flux_arr):
     delt_loc = arr[-1] - arr[0]
     t_0_loc = delt_loc/2 + arr[0]
     I_0 = flux_arr[t_0_loc]
-    
-    delt = time_arr[arr[-1]] - time_arr[arr[0]]
+    # this delta t is twice the delta t in the eddington approximation
+    delt = time_arr[arr[-1]] - time_arr[arr[0]] 
     t_0 = delt/2. + time_arr[arr[0]]
     print 't0 loc', t_0_loc
     print 'arr', arr
@@ -586,19 +619,79 @@ def intensity(t_arr, I_0, t_0, delt, flux_arr, arr):
         else:
             I_arr.append(I)
     return I_arr
-    
-def sun_flux_over_time_fig(files):
-    """ This funtion just plots the total relative flux over time """
-    time_arr, flux_arr = get_flux_over_time(files)
-    #flux_arr = flux_arr/ np.median(flux_arr)
-    #flux_arr = flux_arr / np.max(flux_arr)
-    hdr = loadfits(files[0])[1]
-    exptime, date, filename, jd = hdr['EXPOSURE'], hdr['DATE-OBS'], hdr['OBJECT'], hdr['JD']
-    date = date[5:7]+'/'+date[8:10]+'/'+date[:4] #format the date to look prettier
+
+def get_intensity_parameters(folder):
+    time_arr, flux_arr = get_flux_over_time(folder)
     transit_arr, delt, t_0, I_0, t_0_loc = get_delt(time_arr, flux_arr)
     flux_arr -= np.median(np.delete(flux_arr, transit_arr))
     flux_arr = flux_arr / np.max(flux_arr)
     I_0 = flux_arr[t_0_loc] #because I just rescaled the flux_arr
+    return [transit_arr, delt, t_0, I_0, t_0_loc]
+
+# created a dict so i can just call it and get the eddington parameters
+# but then decided not to call it everytime i run the program
+#intensity_parameters_dict = {
+#                '1_11_11': get_intensity_parameters(sun_files_1_11_11),
+#                '2_11_11': get_intensity_parameters(sun_files_2_11_11),
+#                '1_11_07': get_intensity_parameters(sun_files_1_11_07),
+#                '1_11_12': get_intensity_parameters(sun_files_1_11_12),
+#                '2_11_12': get_intensity_parameters(sun_files_2_11_12),
+#                '3_11_12': get_intensity_parameters(sun_files_3_11_12),
+#                '1_11_16': get_intensity_parameters(sun_files_1_11_16),
+#                '2_11_16': get_intensity_parameters(sun_files_2_11_16),
+#                '3_11_16': get_intensity_parameters(sun_files_3_11_16)}
+intensity_parameters_dict = {
+'1_11_11': [[23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
+            39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 
+            55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65],
+            136.4, 142.5, 1.0, 44],
+'2_11_11': [[38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 
+            53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 
+            69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79],
+            133.0, 188.5, 0.99812015975672996, 58],
+'1_11_07': [[9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+            26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+            43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58],
+            133.0, 91.5, 0.9989658173640924, 33],
+'1_11_12': [[13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 
+            29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 
+            46, 47, 48, 49, 50, 51, 52, 53, 54, 55],
+            135.0, 110.5, 0.99662058517384489, 34],
+'2_11_12': [[16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 
+            32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
+            48, 49, 50, 51, 52, 53, 54, 55, 56, 57], 
+            134, 118, 0.98517826267116748, 36],
+'3_11_12': [[18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 
+            34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51],
+            106, 109, 1.0, 34],
+'1_11_16': [[11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+            28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+            45, 46, 47, 48, 49, 50, 51, 52],
+            134, 103, 1.0, 31],
+'2_11_16': [[10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 
+            27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 
+            44, 45, 46, 47, 48, 49, 50, 51],
+            135, 99.5, 0.98659704188128261, 30],
+'3_11_16': [[15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 
+            32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 
+            49, 50, 51, 52],
+            121, 109.5, 1.0, 33]
+}
+                 
+def sun_flux_over_time_fig(folder, name):
+    """ This funtion just plots the total relative flux over time """
+    #time_arr, flux_arr = get_flux_over_time(folder)
+    #transit_arr, delt, t_0, I_0, t_0_loc = intensity_parameters_dict[name[-7:]]
+    time_arr, flux_arr = get_flux_over_time(folder)
+
+    transit_arr, delt, t_0, I_0, t_0_loc = get_delt(time_arr, flux_arr)
+    flux_arr -= np.median(np.delete(flux_arr, transit_arr))
+    flux_arr = flux_arr / np.max(flux_arr)
+    I_0 = flux_arr[t_0_loc] #because I just rescaled the flux_arr
+    
+    hdr = loadfits(folder[0])[1]
+    exptime, date, filename, jd = hdr['EXPOSURE'], hdr['DATE-OBS'], hdr['OBJECT'], hdr['JD']
+    date = date[5:7]+'/'+date[8:10]+'/'+date[:4] #format the date to look prettier
     
     # Figure of just the flux vs time
     delt_str = "{:.6f}".format(delt)
@@ -606,7 +699,7 @@ def sun_flux_over_time_fig(files):
     plt.title('Flux versus time for ' + filename + ' on ' + date + '\nwith exposure time: ' 
                 + str(exptime) + ' seconds', fontsize = 20)
     plt.xlabel('Time [s]', fontsize = 18) ; plt.ylabel('Total Relative Flux', fontsize = 18)
-    plt.plot(time_arr, flux_arr , 'o', label = 'delta t: ' + delt_str + 's')
+    plt.plot(time_arr, flux_arr , 'o', label = '2 * delta t: ' + delt_str + 's')
     plt.axvline(x=t_0, c='r',ls ='--', linewidth =.75, label = 't_0 = ' + str(t_0))
     for point in transit_arr:
          plt.axvline(x=time_arr[point], c='r',ls ='--', linewidth =.5)
@@ -615,14 +708,14 @@ def sun_flux_over_time_fig(files):
     plt.xlim([np.min(time_arr), np.max(time_arr)]); 
     plt.ylim([-.1,1.1])
     
-    
     t=time_arr
-    I_0 = 1
-    delt = 136.4
-    t_0 = 142.5
     delt_str = "{:.1f}".format(delt)
     t_0_str = "{:.1f}".format(t_0)
     I_0_str = "{:.4f}".format(I_0)
+    
+    print 'delt', delt
+    print 't_0', t_0
+    print 'I_0', I_0
 
     i_arr = intensity(t, I_0, t_0, delt/2, flux_arr, transit_arr) #set t_0 to be 0
     # Fitted figure
@@ -632,17 +725,18 @@ def sun_flux_over_time_fig(files):
     #t = np.arange(0 - delt , 0 + delt + 1 , .1) #go from -delt to delt with .1 increments for the fit
     #i_arr = intensity(t, I_0, 0, delt/2, flux_arr, transit_arr) #set t_0 to be 0
 
-    plt.plot(t, i_arr, label = 'Fit\n' +
-            r'$\Delta t$' + ': ' + delt_str + r'$\pm$' + '1.4s' + '\n' + 
+    plt.plot(np.array(t) - t_0, i_arr, label = 
+            '2'+r'$\Delta t$' + ': ' + delt_str + r'$\pm$' + '1.4s' + '\n' + 
             r'$t_0$' + ': ' + t_0_str + r'$\pm$' + '.8s' + '\n' + 
             r'$I_0$' + ': ' + I_0_str)
-    plt.plot(np.array(time_arr), flux_arr, 'o', label = 'Data') #plot the original data but offset of t_0 to make t_0 be at 0
-    jd_t0 = loadfits(files[t_0_loc])[1]['JD']
-    plt.xlabel('Time - ' + str(jd_t0*24*3600)+' [JD in s]', fontsize=18); 
-    plt.ylabel(r'$I / I_0$', fontsize = 18)
+    plt.plot(np.array(time_arr) - t_0, flux_arr, 'o', label = 'Data') #plot the original data but offset of t_0 to make t_0 be at 0
+    jd_t0 = loadfits(folder[t_0_loc])[1]['JD']
+    plt.xlabel('Time - ' + str(jd_t0*24*3600)+' [JD in s]', fontsize=20); 
+    plt.ylabel(r'$I / I_0$', fontsize = 20)
     plt.tight_layout()
-    plt.legend(loc = 'best', framealpha=0.5, fancybox=True)
-    #plt.xlim([np.min(np.array(time_arr)-t_0), np.max(np.array(time_arr)-t_0)]); 
+    plt.legend(loc = 'best', framealpha=0.5, fancybox=True, fontsize = 16)
+    plt.xlim([np.min(np.array(time_arr)-t_0), np.max(np.array(time_arr)-t_0)]); 
+    #plt.xlim([np.min(t), np.max(t)])
     plt.ylim([-.1,1.1])
     
     residuals_fig = plt.figure()
@@ -657,8 +751,13 @@ def sun_flux_over_time_fig(files):
     
     return fig, fit_fig, residuals_fig
     
+    
 #plt.show(display_fits(img_sun_1)) #the fits img 
-plt.show(sun_flux_over_time_fig(sun_1_files)) #the flux vs time
+#plt.show(sun_flux_over_time_fig(sun_files_1_11_11, name = '1_11_11')) #the flux vs time
+    # 11/11 sun1
+    #I_0 = 1
+    #delt = 136.4
+    #t_0 = 142.5
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -699,7 +798,8 @@ def get_current_band(img, order_num, noise, ignore_index = 10):
     band = get_band_flux(img, order_num) - noise
     band /= np.max(band)
     return band[:-ignore_index]
-def get_wavelength_fit(wavelength, current_band):
+def get_wavelength_fit(current_band):
+    wavelength = cal_wavelengths_dict[current_band]
     fit = [wavelength, current_band]
     quad = LLS.linleastsquares(fit, 3)
     wavelength_fit = calibrate_quad(quad, wavelength)
@@ -778,33 +878,41 @@ def plot_wavelength_fit(wavelength, files, index, order_num = 4):
     fig_flat.gca().invert_xaxis()
     #========================
     return [fig_fit, fig_flat]
-    
-def get_flux_for_correlation(wavelength, files, index, order_num = 4):
-    img, hdr = loadfits(files[index])
-    current_band = get_current_band(img, order_num, nontransit_noise)
-    wavelength1 = get_wavelength_fit(wavelength, current_band)  
-    return current_band - wavelength1
 
-transit_arr_11_11 = [23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 
-37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 
-56, 57, 58, 59, 60, 61, 62, 63, 64, 65]
+
 order_num = 4
-fig_two_indexes, nontransit_noise, wavelength = display_band_sun(sun_1_files, order_num)
-plt.show(fig_two_indexes)
-index = 63
+chosen_day = '1_11_11'
+chosen_folder = sun_files_1_11_11
 
-#for index in transit_arr_11_11:
+chosen_transit_arr = intensity_parameters_dict[chosen_day][0]
+chosen_t_0 = intensity_parameters_dict[chosen_day][4]
+chosen_limb = intensity_parameters_dict[chosen_day][0][-1] - 2
+
+fig_two_indexes, nontransit_noise, wavelength = display_band_sun(chosen_folder, order_num)
+plt.show(fig_two_indexes)
+
+#for index in chosen_transit_arr:
 #    fig_fit, fig_flat = plot_wavelength_fit(wavelength, sun_1_files, index)
 #    plt.show(fig_fit)
 #    plt.show(fig_flat)
 
+def get_flux_for_cross_corr(folder, index, order_num = 4, ignore_index = 10):
+    img = loadfits(folder[index])[0]
+    initial_flux = get_band_flux(img, order_num) - nontransit_noise # subtract the scattered light
+    initial_flux = initial_flux[:-ignore_index] # the last ten pixels are weird
+    x = np.arange(len(initial_flux))
+    fit = LLS.linleastsquares([x, initial_flux],3) # get a 2nd deg fit
+    flattened_flux = initial_flux - calibrate_quad(fit, x) #subtract the fit to flatten 
+    flattened_flux /= np.max(flattened_flux) # normalize
+    return flattened_flux
+    
 def ham_it_up(arr):
     return np.hamming(len(arr)) * arr
     
 def get_crossed(flux1, flux2):
     flux1 = ham_it_up(flux1)
     flux2 = ham_it_up(flux2)
-    return np.correlate(flux1,flux2,'same')
+    return np.correlate(flux1, flux2, 'same')
 
 def get_shift_axis(cross_corr):
     n_pix=len(cross_corr)
@@ -814,22 +922,22 @@ def get_shift_axis(cross_corr):
     else: 
         shift_axis=np.arange(-n_pix/2.,n_pix/2.)
     return shift_axis
+	
 def get_shift(shift_axis, cross_corr, num = 3):
     #gets the indexes of the max 3 points
     max_three = heapq.nlargest(num, range(len(cross_corr)), cross_corr.__getitem__)
     max_three = sorted(max_three)
-    #print max_three
-    #print shift_axis[max_three]
-    #print cross_corr[max_three]
     fit = [shift_axis[max_three], cross_corr[max_three]]
     quad = LLS.linleastsquares(fit, 3)
-    x = np.linspace(-1,1, 100)
+    x = np.linspace(-1, 1, 100)
     max_three_fit = calibrate_quad(quad, x)
     shift_max_y = np.amax(max_three_fit)
     shift_max_x = x[np.argmax(max_three_fit)] 
     return [shift_max_x, shift_max_y, x, max_three_fit]
     
-def corr_plot(flux1, flux2):
+def corr_plot(folder, index1, index2):
+    flux1 = get_flux_for_cross_corr(folder, index1)
+    flux2 = get_flux_for_cross_corr(folder, index2)
     #calculate the cross correlation (y-axis)
     cross_corr = get_crossed(flux1, flux2)
     #calculate shift axis (x-axis)
@@ -837,74 +945,340 @@ def corr_plot(flux1, flux2):
     
     fig = plt.figure()
     plt.subplot(2,1,1)
-    plt.plot(one,'b',linewidth=2)
-    plt.plot(two,'r',linewidth=2)
-    plt.xlabel('X Axis', fontsize=16) ; plt.ylabel('Y Axis [Unit]', fontsize=16)
+    plt.plot(flux1,'b',linewidth= .75, label = 'Spectrum ' + str(index1))
+    plt.plot(flux2,'r',linewidth= .75, label = 'Spectrum ' + str(index2))
+    plt.xlabel('Pixel', fontsize=16) ; plt.ylabel(r'$\frac{I-quadratic\ fit}{I_0}$', fontsize=20)
     plt.title('Cross-Correlation', fontsize=18)
+    plt.xlim([0,1048])
+    plt.legend(loc=0)
 
     shift_max_x, shift_max_y, x, max_three_fit = get_shift(shift_axis, cross_corr)
     
-    plt.subplot(2,1,2)
-    plt.plot(shift_axis,cross_corr,'g',linewidth=1)
-    plt.plot(shift_axis,cross_corr,'bo',linewidth=1)
-    plt.axvline(x = shift_max_x)
-    plt.plot(x, max_three_fit,'k', linewidth = 2, label = str(shift_max_x))
-    plt.xlim([-2,2])
-    plt.xlabel('Shift Axis', fontsize=16) ; plt.ylabel('Cross-Correlation [Unit$^2$]', fontsize=16)
-    plt.legend(loc=0)
-    plt.tight_layout()
-    return fig, shift_max_x
-folder = sun_1_files
-one = get_flux_for_correlation(wavelength, folder, 60)
-two = get_flux_for_correlation(wavelength, folder, 44)
-#plt.show(corr_plot(one, two))
+    zoom_ax = fig.add_subplot(224)
+    non_zoom_ax = fig.add_subplot(223)
+    for ax in [zoom_ax, non_zoom_ax]:
+        ax.plot(shift_axis,cross_corr,'g',linewidth=1)
+        ax.set_xlabel('Shift Axis', fontsize=16) ; 
+    zoom_ax.scatter(shift_axis,cross_corr,s = 25)
+    zoom_ax.plot((shift_max_x, shift_max_x), (np.min(cross_corr)-20, np.max(cross_corr)+20), 'k--')
+    non_zoom_ax.scatter(shift_axis,cross_corr,s=1)
+    non_zoom_ax.set_ylabel('Cross-Corr [Unit$^2$]', fontsize=16)
+    zoom_ax.plot(x, max_three_fit,'k', linewidth = 2, label = str(shift_max_x))
+    zoom_ax.set_xlim([-10,10])
+    #non_zoom_ax.xlim([-10,10])
+    
+    zoom_ax.legend(loc=0)
+    #plt.tight_layout()
+    return fig
 
-#t_0_flux = get_flux_for_correlation(wavelength, folder, 44)
-#for index in range(len(folder)):
-#    t_0_flux += get_flux_for_correlation(wavelength, folder, index)
-#t_0_flux /= len(folder)
-#shift_arr = []
+#plt.show(corr_plot(chosen_folder, chosen_t_0, chosen_limb))
 #for index in transit_arr_11_11:
-#    curr_flux = get_flux_for_correlation(wavelength, folder, index)
-#    plt.show(corr_plot(curr_flux, t_0_flux))
+#    plt.show(corr_plot(folder, t_0_index, index))
 
-def shift(t_0_index, transit_arr, wavelength, folder):
-    #=========================
-    # get the shifted array
-    t_0_flux = get_flux_for_correlation(wavelength, folder, t_0_index)
-    for index in range(len(folder)):
-        t_0_flux += get_flux_for_correlation(wavelength, folder, index)
-    t_0_flux /= len(folder)
-    shift_arr = []
-    for index in transit_arr_11_11:
-        curr_flux = get_flux_for_correlation(wavelength, folder, index)
-        cross_corr = get_crossed(curr_flux, t_0_flux)
+
+
+### mels code ###
+#def doppler(folder, sunavgfil, midindex, coeff1, coeff2, coeff3, beginindex, endindex, time):
+
+def doppler(folder, name):
+    dopplerpts = []
+    time_arr = []
+    avg_img = avg_fits_img(folder)
+    refy = get_band_flux(avg_img, 4)
+    refx = np.arange(len(refy))
+    fit = LLS.linleastsquares([refx, refy],3) # get a 2nd deg fit
+    flattened_ref = refy - calibrate_quad(fit, refx) #subtract the fit to flatten 
+    flattened_ref /= np.max(flattened_ref) # normalize
+    
+    transit_arr, t_0_loc = intensity_parameters_dict[name][0], intensity_parameters_dict[name][-1]
+    beginindex, endindex = transit_arr[0], transit_arr[-1]
+    start_time = loadfits(folder[0])[1]['JD'] * 24 * 3600
+    for j in range(beginindex, endindex):
+        crossimg, crosshdr = loadfits(folder[j])
+        time_arr.append(crosshdr['JD'] *24*3600 - start_time)
+        crossy = get_band_flux(crossimg, 4)
+        crossx = np.arange(len(crossy))
+        fit = LLS.linleastsquares([crossx, crossy],3)
+        cross_flat = crossy - calibrate_quad(fit, crossx)
+        cross_flat /= np.max(cross_flat)
+               
+        #calculate the cross correlation (y-axis)
+        cross_corr = get_crossed(flattened_ref, cross_flat)
+        #calculate shift axis (x-axis)
         shift_axis = get_shift_axis(cross_corr)
-        x_shift = get_shift(shift_axis, cross_corr)[0]
-        shift_arr.append(x_shift)
+        pixelshift = get_shift(shift_axis, cross_corr)[0]
+        dopplerpts.append(pixelshift)
+
+    return time_arr, dopplerpts
+time_arr, shift_arr = doppler(sun_files_1_11_11, '1_11_11')
+
+def plot_doppler(folder, name):
+    time_arr, dopplerpts = doppler(folder, name)
+    fig = plt.figure()
+    plt.plot(time_arr, dopplerpts,'o')
+    
+    plt.ylabel('Pixel shift')
+    yint, m = LLS.linleastsquares([time_arr, dopplerpts],2)
+    print 'SLOPE', m
+    shift_fit = time_arr*m + yint
+    plt.plot(time_arr, dopplerpts, 'o')
+    plt.plot(time_arr, shift_fit,'r', label = 'y = ' + str(m[0]) + 'x + ' + str(yint[0]))
+    plt.title('Doppler Shift ' + name, size=20)
+    plt.xlabel('Time', size=18)
+    plt.ylabel('Pixel Shift', size=18)
+    plt.legend(loc=8)
+    return fig, m
+
+#'1_11_11': [[23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
+#            39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 
+#            55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65],
+#            136.4, 142.5, 1.0, 44],
+#'2_11_11': [[38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 
+#            53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 
+#            69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79],
+#            133.0, 188.5, 0.99812015975672996, 58],
+#'1_11_07': [[9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+#            26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+#            43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58],
+#            133.0, 91.5, 0.9989658173640924, 33],
+#'1_11_12': [[13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 
+#            29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 
+#            46, 47, 48, 49, 50, 51, 52, 53, 54, 55],
+#            135.0, 110.5, 0.99662058517384489, 34],
+#'2_11_12': [[16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 
+#            32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
+#            48, 49, 50, 51, 52, 53, 54, 55, 56, 57], 
+#            134, 118, 0.98517826267116748, 36],
+#'1_11_16': [[11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+#            28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+#            45, 46, 47, 48, 49, 50, 51, 52],
+#            134, 103, 1.0, 31],
+#'2_11_16': [[10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 
+#            27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 
+#            44, 45, 46, 47, 48, 49, 50, 51],
+#            135, 99.5, 0.98659704188128261, 30],
+
+plt.show(plot_doppler(sun_files_1_11_12, '1_11_12'))
+#NO to the 11/11 and 11/07 3 11/16
+data = [[sun_files_1_11_12, '1_11_12'], 
+[sun_files_2_11_12, '2_11_12'], [sun_files_1_11_16, '1_11_16'], 
+[sun_files_2_11_16, '2_11_16']]
+slope_arr = []
+for elem in data:
+    m = plot_doppler(elem[0], elem[1])[1]
+    print elem[1]
+    print m
+    slope_arr.append(m)
+
+
+
+
+
+
+
+
+
+
+def shift(folder, name, order_num = 4, ignore_index = 10):
+    #=========================
+    shift_arr = []
+    time_arr = []
+    avg_img = avg_fits_img(folder)
+    refy = get_band_flux(avg_img, order_num)[:-ignore_index] - nontransit_noise
+    refx = np.arange(len(refy))
+    fit = LLS.linleastsquares([refx, refy],3) # get a 2nd deg fit
+    flattened_ref = refy - calibrate_quad(fit, refx) #subtract the fit to flatten 
+    flattened_ref /= np.max(flattened_ref) # normalize
+    transit_arr, t_0_loc = intensity_parameters_dict[name][0], intensity_parameters_dict[name][-1]
+    beginindex, endindex = transit_arr[0], transit_arr[-1]
+    start_time = loadfits(folder[0])[1]['JD'] * 24 * 3600
+
+    for index in transit_arr:
+        curr_img, curr_hdr = loadfits(folder[index])
+        time_arr.append(curr_hdr['JD'] *24*3600 - start_time)
+        curr_flux = get_band_flux(curr_img, order_num)[:-ignore_index] - nontransit_noise
+        curr_x = np.arange(len(curr_flux))
+        
+        fit = LLS.linleastsquares([curr_x, curr_flux],3)
+        flattened_curr = curr_flux - calibrate_quad(fit, curr_x)
+        flattened_curr /= np.max(flattened_curr)
+        
+        #calculate the cross correlation (y-axis)
+        cross_corr = get_crossed(flattened_ref, flattened_curr)
+        #calculate shift axis (x-axis)
+        shift_axis = get_shift_axis(cross_corr)
+        pixelshift = get_shift(shift_axis, cross_corr)[0]
+        shift_arr.append(pixelshift)
+        
     print shift_arr
+
     shift_fig = plt.figure()
-    plt.plot(shift_arr, 'o')
+    plt.plot(time_arr, shift_arr, 'o')
     plt.ylabel('Pixel shift')
     
     fit_fig = plt.figure()
-    x = np.arange(len(shift_arr))
-    yint, m = LLS.linleastsquares([x, shift_arr],2)
-    shift_fit = x*m + yint
-    plt.plot(x, shift_arr, 'o')
-    plt.plot(x, shift_fit,'r', label = str(m) + '   ' + str(yint))
+    yint, m = LLS.linleastsquares([time_arr, shift_arr],2)
+    print 'SLOPE', m
+    shift_fit = time_arr*m + yint
+    plt.plot(time_arr, shift_arr, 'o')
+    plt.plot(time_arr, shift_fit,'r', label = 'y = ' + str(m[0]) + 'x + ' + str(yint[0]))
     plt.title('Doppler Shift ',size=20)
     plt.xlabel('Time', size=18)
     plt.ylabel('Pixel Shift', size=18)
-    plt.legend()
+    plt.legend(loc=8)
     
-    residuals_fig = plt.figure()
-    res = shift_fit - shift_arr
-    plt.plot(x,res,'go')
-    return shift_arr, shift_fig, fit_fig, residuals_fig
+    return shift_arr, shift_fig, fit_fig
 # 44th spectrum is the t_0, so go from transit_arr[0] to transit_arr[-1]
-t_0_index = 44
-shift_arr, shift_fig, fit_fig, residuals_fig = shift(t_0_index, transit_arr_11_11, wavelength, folder)
+shift_arr, shift_fig, fit_fig = shift(sun_files_1_11_12, '1_11_12')
+plt.show(shift_fig)
+plt.show(fit_fig)
+
+
+
+
+
+
+
+
+
+#def shift(folder, name, order_num = 4):
+#    #=========================
+#    shift_arr = []
+#    time_arr = []
+#    avg_img = avg_fits_img(folder)
+#    refy = get_band_flux(avg_img, order_num)
+#    refx = np.arange(len(refy))
+#    fit = LLS.linleastsquares([refx, refy],3) # get a 2nd deg fit
+#    flattened_ref = refy - calibrate_quad(fit, refx) #subtract the fit to flatten 
+#    flattened_ref /= np.max(flattened_ref) # normalize
+#    transit_arr, t_0_loc = intensity_parameters_dict[name][0], intensity_parameters_dict[name][-1]
+#    beginindex, endindex = transit_arr[0], transit_arr[-1]
+#    start_time = loadfits(folder[0])[1]['JD'] * 24 * 3600
+#
+#    for index in transit_arr:
+#        curr_img, curr_hdr = loadfits(folder[index])
+#        time_arr.append(curr_hdr['JD'] *24*3600 - start_time)
+#        curr_flux = get_band_flux(curr_img, order_num)
+#        curr_x = np.arange(len(curr_flux))
+#        
+#        fit = LLS.linleastsquares([curr_x, curr_flux],3)
+#        flattened_curr = curr_flux - calibrate_quad(fit, curr_x)
+#        flattened_curr /= np.max(flattened_curr)
+#        
+#        #calculate the cross correlation (y-axis)
+#        cross_corr = get_crossed(flattened_ref, flattened_curr)
+#        #calculate shift axis (x-axis)
+#        shift_axis = get_shift_axis(cross_corr)
+#        pixelshift = get_shift(shift_axis, cross_corr)[0]
+#        shift_arr.append(pixelshift)
+#        
+#    print shift_arr
+#
+#    shift_fig = plt.figure()
+#    plt.plot(shift_arr, 'o')
+#    plt.ylabel('Pixel shift')
+#    
+#    fit_fig = plt.figure()
+#    yint, m = LLS.linleastsquares([time_arr, shift_arr],2)
+#    print 'SLOPE', m
+#    shift_fit = time_arr*m + yint
+#    plt.plot(time_arr, shift_arr, 'o')
+#    plt.plot(time_arr, shift_fit,'r', label = 'y = ' + str(m[0]) + 'x + ' + str(yint[0]))
+#    plt.title('Doppler Shift ',size=20)
+#    plt.xlabel('Time', size=18)
+#    plt.ylabel('Pixel Shift', size=18)
+#    plt.legend(loc=8)
+#    
+#    residuals_fig = plt.figure()
+#    res = shift_fit - shift_arr
+#    plt.plot(shift_arr,res,'go')
+#    return shift_arr, shift_fig, fit_fig, residuals_fig
+## 44th spectrum is the t_0, so go from transit_arr[0] to transit_arr[-1]
+#shift_arr, shift_fig, fit_fig, residuals_fig = shift(sun_files_1_11_11, '1_11_11')
+#plt.show(shift_fig)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
+#def shift(t_0_index, transit_arr, wavelength, folder):
+#    #=========================
+#    # get the shifted array
+#    t_0_flux = get_flux_for_cross_corr(folder, t_0_index)
+#    #for index in range(len(folder)):
+#    #    t_0_flux += get_flux_for_cross_corr(folder, index)
+#    #t_0_flux /= len(folder)
+#    shift_arr = []
+#    print transit_arr
+#    for index in transit_arr:
+#        curr_flux = get_flux_for_cross_corr(folder, index)
+#        cross_corr = get_crossed(curr_flux, t_0_flux)
+#        shift_axis = get_shift_axis(cross_corr)
+#        x_shift = get_shift(shift_axis, cross_corr)[0]
+#        shift_arr.append(x_shift)
+#    print shift_arr
+#    shift_fig = plt.figure()
+#    plt.plot(shift_arr, 'o')
+#    plt.ylabel('Pixel shift')
+#    
+#    fit_fig = plt.figure()
+#    x = np.arange(len(shift_arr))
+#    yint, m = LLS.linleastsquares([x, shift_arr],2)
+#    print 'SLOPE', m
+#    shift_fit = x*m + yint
+#    plt.plot(x, shift_arr, 'o')
+#    plt.plot(x, shift_fit,'r', label = 'y = ' + str(m[0]) + 'x + ' + str(yint[0]))
+#    plt.title('Doppler Shift ',size=20)
+#    plt.xlabel('Time', size=18)
+#    plt.ylabel('Pixel Shift', size=18)
+#    plt.legend(loc=8)
+#    
+#    residuals_fig = plt.figure()
+#    res = shift_fit - shift_arr
+#    plt.plot(x,res,'go')
+#    return shift_arr, shift_fig, fit_fig, residuals_fig
+## 44th spectrum is the t_0, so go from transit_arr[0] to transit_arr[-1]
+#shift_arr, shift_fig, fit_fig, residuals_fig = shift(chosen_t_0, chosen_transit_arr, wavelength, chosen_folder)
 #plt.show(shift_fig)
 
 shift = np.max(shift_arr)
@@ -919,14 +1293,84 @@ def get_speed(shift, order_num = 4):
     centroids, spec = sorted(centroids), sorted(spec)[::-1] # reverse the spec cause short lambda (left) to long lambda (right)
     fit = [centroids, spec]
     quad = LLS.linleastsquares(fit, 3) #get the a_0 and a_1 and a_2
-    print quad
     vel_arr = [] #keeps all the velocities which will be averaged later
-    for i in range(1048):
+    for i in range(1038):
         lambda_new = calibrate_quad(quad, shift+i) # calculate the wavelength at pixel = (shift+i)
         lambda_0 = calibrate_quad(quad, i) # calculate the wavelength at pixel = i
         vel_arr.append(calculate_vrot(lambda_0, lambda_new))
-    return np.sum(vel_arr)/len(vel_arr) # take the average (v will be in m/s)
+    v_std = my_std(vel_arr)
+    v_sdom = my_sdom(vel_arr)
+    print 'STD of rel vel: ' + str(v_std)
+    print 'SDOM of rel vel: ' + str(v_sdom)
+    return np.sum(vel_arr)/len(vel_arr) # take the average (v will be in km/s)
+v_rel = get_speed(shift)
+print "RELATIVE VELOCITY: ", v_rel
 
+sun_period = 24.47 # days
 def get_sun_radius(vel, period):
     period = period * 24 * 3600 # get period from days to seconds
     return (1./(2*np.pi)) * vel * period
+
+sun_radius = get_sun_radius(v_rel, sun_period)
+
+
+ang_dia_sun = 1919.3 #arc seconds
+theta_sun = ang_dia_sun * (1./3600)
+theta_sun = .533 # degrees angular diameter
+def get_earthsun_dist(theta, radius):
+    return 2*radius/np.sin(theta)
+
+day = 315 # day # of 11/11   - calculated the day by using a calender lol 
+def get_decsun(n_day): #equation 27
+    return -23.44 * np.cos(2*np.pi* ((n_day+10)/365.24))
+    
+sun_dec = get_decsun(315)
+# 316 --> -18.299161680316576
+# 315 --> -18.044472355555445
+# 314 --> -17.784443088728615
+# 313 --> -17.519150830893004
+
+    
+#226.33   3.37  
+   
+phi =2.*np.pi/25.6
+decsun = -17 + 37/60. +13.5/3600.
+decsun = np.radians(decsun)
+chord =133.
+predtim = 1919.3/(15*np.cos(decsun))
+'''
+
+delt = 136.4
+t_0 = 142.5
+t = delt - t_0
+theta = np.arccos( np.sqrt(1-(t-t_0)**2 / delt))
+trans1 = np.matrix([[np.cos(zi),0,np.sin(zi)],[0,1,0],[-np.sin(zi),0,np.cos(zi)]]) # from x,y,z to x',y',z'
+trans2 = np.matrix([[1,0,0],0,np.cos(nu),np.sin(nu)],[0,-np.sin(nu),np.cos(nu)]]) # from x',y',z' to x'',y'',z''
+''' 
+''' 
+def hi(i, dele):
+    centroids, spec = cen_spec_dict[order_num]
+    centroids, spec = sorted(centroids), sorted(spec)[::-1] # reverse the spec cause short lambda (left) to long lambda (right)
+    fit = [centroids, spec]
+    quad = LLS.linleastsquares(fit, 3) #get the a_0 and a_1 and a_2
+    print quad
+    lambda_new = calibrate_quad(quad, i+dele) # calculate the wavelength at pixel = (shift+i)
+    lambda_0 = calibrate_quad(quad, i) # calculate the wavelength at pixel = i
+    print lambda_new - lambda_0
+    
+    
+def dist(vals):
+    x,y,z = vals
+    return np.sqrt(x**2 + y**2 + z**2)
+    
+coords11_11 = [-6.619813967311905E-01, -7.364541638390490E-01, -1.468250727594430E-06]
+coords11_12 = [-6.488009866335709E-01, -7.477827710351609E-01, -5.680459615135181E-07]
+
+AU = 149597870.700 # km
+
+real_d_11_11 = dist(coords) * AU #km
+my_d_11_11 = 124974985.27485408 #km
+
+def accurate_error(calc, real):
+    return (calc-real)/real * 100 # percent
+    '''

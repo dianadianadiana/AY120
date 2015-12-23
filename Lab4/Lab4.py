@@ -977,11 +977,9 @@ def corr_plot(folder, index1, index2):
 
 
 
-### mels code ###
-#def doppler(folder, sunavgfil, midindex, coeff1, coeff2, coeff3, beginindex, endindex, time):
-
-def doppler(folder, name):
-    dopplerpts = []
+### mels code  with my altercations###
+def find_shift(folder, name):
+    shift_arr = []
     time_arr = []
     avg_img = avg_fits_img(folder)
     refy = get_band_flux(avg_img, 4)
@@ -993,6 +991,7 @@ def doppler(folder, name):
     transit_arr, t_0_loc = intensity_parameters_dict[name][0], intensity_parameters_dict[name][-1]
     beginindex, endindex = transit_arr[0], transit_arr[-1]
     start_time = loadfits(folder[0])[1]['JD'] * 24 * 3600
+    
     for j in range(beginindex, endindex):
         crossimg, crosshdr = loadfits(folder[j])
         time_arr.append(crosshdr['JD'] *24*3600 - start_time)
@@ -1007,27 +1006,26 @@ def doppler(folder, name):
         #calculate shift axis (x-axis)
         shift_axis = get_shift_axis(cross_corr)
         pixelshift = get_shift(shift_axis, cross_corr)[0]
-        dopplerpts.append(pixelshift)
-
-    return time_arr, dopplerpts
-time_arr, shift_arr = doppler(sun_files_1_11_11, '1_11_11')
+        shift_arr.append(pixelshift)
+    
+    yint, slope = LLS.linleastsquares([time_arr, shift_arr],2)
+    return time_arr, shift_arr, slope, yint
+time_arr, shift_arr, slope, yint = find_shift(sun_files_1_11_11, '1_11_11')
 
 def plot_doppler(folder, name):
-    time_arr, dopplerpts = doppler(folder, name)
+    time_arr, shift_arr, slope, yint = find_shift(folder, name)
     fig = plt.figure()
-    plt.plot(time_arr, dopplerpts,'o')
-    
-    plt.ylabel('Pixel shift')
-    yint, m = LLS.linleastsquares([time_arr, dopplerpts],2)
-    print 'SLOPE', m
-    shift_fit = time_arr*m + yint
-    plt.plot(time_arr, dopplerpts, 'o')
-    plt.plot(time_arr, shift_fit,'r', label = 'y = ' + str(m[0]) + 'x + ' + str(yint[0]))
+    plt.plot(time_arr, shift_arr,'o')
+
+    shift_fit = time_arr*slope + yint
+    plt.plot(time_arr, shift_arr, 'o')
+    plt.plot(time_arr, shift_fit, 'r', label = 'y = ' + str(-1*slope[0]) + 'x + ' + str(yint[0]))
     plt.title('Doppler Shift ' + name, size=20)
     plt.xlabel('Time', size=18)
     plt.ylabel('Pixel Shift', size=18)
     plt.legend(loc=8)
-    return fig, m
+    plt.gca().invert_xaxis()
+    return fig
 
 #'1_11_11': [[23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
 #            39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 
@@ -1058,144 +1056,100 @@ def plot_doppler(folder, name):
 #            44, 45, 46, 47, 48, 49, 50, 51],
 #            135, 99.5, 0.98659704188128261, 30],
 
-plt.show(plot_doppler(sun_files_1_11_12, '1_11_12'))
+#plt.show(plot_doppler(sun_files_1_11_12, '1_11_12'))
 #NO to the 11/11 and 11/07 3 11/16
-data = [[sun_files_1_11_12, '1_11_12'], 
-[sun_files_2_11_12, '2_11_12'], [sun_files_1_11_16, '1_11_16'], 
-[sun_files_2_11_16, '2_11_16']]
-slope_arr = []
-for elem in data:
-    m = plot_doppler(elem[0], elem[1])[1]
-    print elem[1]
-    print m
-    slope_arr.append(m)
+#data = [[sun_files_1_11_12, '1_11_12'], [sun_files_2_11_12, '2_11_12'], 
+#[sun_files_1_11_16, '1_11_16'], [sun_files_2_11_16, '2_11_16']]
+#slope_arr = []
+#for elem in data:
+#    m = find_shift(elem[0], elem[1])[2]
+#    print elem[1]
+#    print m
+#    slope_arr.append(m)
+
+delt_dict = {'1_11_12': intensity_parameters_dict['1_11_12'][1],
+'2_11_12': intensity_parameters_dict['2_11_12'][1],
+'1_11_16': intensity_parameters_dict['1_11_16'][1],
+'2_11_16': intensity_parameters_dict['2_11_16'][1]}
+
+xi11 = np.radians(3.37) #from JPL 11
+eta11 = np.radians(226.33)
+xi12 = np.radians(3.25)
+eta12 = np.radians(213.15)
+xi16 = np.radians(2.79)
+eta16 = np.radians(160.42)
+xi_eta_dict = {'11': [xi11,eta11], '12': [xi12,eta12],'16': [xi16,eta16]}
+
+# need to times by (-1) because of the way i fit the wavelengths
+doppler_slope_dict = {'1_11_12': -1*find_shift(sun_files_1_11_12, '1_11_12')[2],
+'2_11_12': -1*find_shift(sun_files_2_11_12, '2_11_12')[2],
+'1_11_16': -1*find_shift(sun_files_1_11_16, '1_11_16')[2],
+'2_11_16': -1*find_shift(sun_files_2_11_16, '2_11_16')[2]}
 
 
+linear_m = -0.0218834 # the linear fit for the echelle 34 order
+linear_yint = 660.8859559
 
-
-
-
-
-
-
-
-def shift(folder, name, order_num = 4, ignore_index = 10):
-    #=========================
-    shift_arr = []
-    time_arr = []
-    avg_img = avg_fits_img(folder)
-    refy = get_band_flux(avg_img, order_num)[:-ignore_index] - nontransit_noise
-    refx = np.arange(len(refy))
-    fit = LLS.linleastsquares([refx, refy],3) # get a 2nd deg fit
-    flattened_ref = refy - calibrate_quad(fit, refx) #subtract the fit to flatten 
-    flattened_ref /= np.max(flattened_ref) # normalize
-    transit_arr, t_0_loc = intensity_parameters_dict[name][0], intensity_parameters_dict[name][-1]
-    beginindex, endindex = transit_arr[0], transit_arr[-1]
-    start_time = loadfits(folder[0])[1]['JD'] * 24 * 3600
-
-    for index in transit_arr:
-        curr_img, curr_hdr = loadfits(folder[index])
-        time_arr.append(curr_hdr['JD'] *24*3600 - start_time)
-        curr_flux = get_band_flux(curr_img, order_num)[:-ignore_index] - nontransit_noise
-        curr_x = np.arange(len(curr_flux))
-        
-        fit = LLS.linleastsquares([curr_x, curr_flux],3)
-        flattened_curr = curr_flux - calibrate_quad(fit, curr_x)
-        flattened_curr /= np.max(flattened_curr)
-        
-        #calculate the cross correlation (y-axis)
-        cross_corr = get_crossed(flattened_ref, flattened_curr)
-        #calculate shift axis (x-axis)
-        shift_axis = get_shift_axis(cross_corr)
-        pixelshift = get_shift(shift_axis, cross_corr)[0]
-        shift_arr.append(pixelshift)
-        
-    print shift_arr
-
-    shift_fig = plt.figure()
-    plt.plot(time_arr, shift_arr, 'o')
-    plt.ylabel('Pixel shift')
+def transform(name, linear_m, linear_yint):
+    print '*******NAME*******', name
+    xi, eta = xi_eta_dict[name[-2:]]
+    doppler_slope = doppler_slope_dict[name]
+    delt = delt_dict[name]
+    print 'DOPPLER SLOPE', doppler_slope
+    print 'DELT', delt
     
-    fit_fig = plt.figure()
-    yint, m = LLS.linleastsquares([time_arr, shift_arr],2)
-    print 'SLOPE', m
-    shift_fit = time_arr*m + yint
-    plt.plot(time_arr, shift_arr, 'o')
-    plt.plot(time_arr, shift_fit,'r', label = 'y = ' + str(m[0]) + 'x + ' + str(yint[0]))
-    plt.title('Doppler Shift ',size=20)
-    plt.xlabel('Time', size=18)
-    plt.ylabel('Pixel Shift', size=18)
-    plt.legend(loc=8)
+    corrfactor=np.cos(eta)*np.cos(xi)
+    c = 299792.548
+    lambd = 524*linear_m + linear_yint
     
-    return shift_arr, shift_fig, fit_fig
-# 44th spectrum is the t_0, so go from transit_arr[0] to transit_arr[-1]
-shift_arr, shift_fig, fit_fig = shift(sun_files_1_11_12, '1_11_12')
-plt.show(shift_fig)
-plt.show(fit_fig)
+    vrot = (doppler_slope*c*linear_m*delt)/(lambd*corrfactor)
+    print 'vrot: ',vrot
+    T_rot = (26.24*24*3600)
+    radius = (1/(2*np.pi))*vrot*T_rot
+    print 'solar radius = ', radius
+    angsun = np.radians(1919.3/3600.)
+    my_d = (2*radius)/np.sin(angsun) # km
+    print 'earth sun dist= ', my_d
+    return vrot,radius, my_d
+name = '2_11_12'
+ans = transform(name, linear_m, linear_yint)
+consider_arr = ['1_11_12', '2_11_12', '1_11_16', '2_11_16']
+for name in consider_arr:
+    transform(name, linear_m, linear_yint)
 
 
+# in the order of ['1_11_12', '2_11_12', '1_11_16', '2_11_16']
+rot_v_dict = {'1_11_12': 1.99472712, '2_11_12': 2.22551396, 
+'1_11_16':1.80421032, '2_11_16': 2.39975034}
+sol_radius_dict = {'1_11_12': 719749.20893956, '2_11_12': 803023.07993681, 
+'1_11_16':651005.8146031, '2_11_16': 865892.07838828}
+earth_sun_dist_dict = {'1_11_12': 1.54703354e+08, '2_11_12': 1.72602293e+08, 
+'1_11_16':1.39927605e+08, '2_11_16': 1.86115395e+08}
+AU = 149597870.700 # km
 
 
+def dist(vals):
+    x,y,z = vals
+    return np.sqrt(x**2 + y**2 + z**2)
+    
+coords11_11 = [-6.619813967311905E-01, -7.364541638390490E-01, -1.468250727594430E-06]
+coords11_12 = [-6.488009866335709E-01, -7.477827710351609E-01, -5.680459615135181E-07]
+coords11_16 = [-5.941341093410324E-01, -7.907680523909600E-01,  1.745883012069500E-06]
 
+def AU_to_km(val):
+    return val * AU
 
+AU_11_11 = dist(coords11_11)
+AU_11_12 = dist(coords11_12)
+AU_11_16 = dist(coords11_16)
 
+KM_11_11 = AU_to_km(AU_11_11)
+KM_11_12 = AU_to_km(AU_11_12)
+KM_11_16 = AU_to_km(AU_11_16)
 
-
-#def shift(folder, name, order_num = 4):
-#    #=========================
-#    shift_arr = []
-#    time_arr = []
-#    avg_img = avg_fits_img(folder)
-#    refy = get_band_flux(avg_img, order_num)
-#    refx = np.arange(len(refy))
-#    fit = LLS.linleastsquares([refx, refy],3) # get a 2nd deg fit
-#    flattened_ref = refy - calibrate_quad(fit, refx) #subtract the fit to flatten 
-#    flattened_ref /= np.max(flattened_ref) # normalize
-#    transit_arr, t_0_loc = intensity_parameters_dict[name][0], intensity_parameters_dict[name][-1]
-#    beginindex, endindex = transit_arr[0], transit_arr[-1]
-#    start_time = loadfits(folder[0])[1]['JD'] * 24 * 3600
-#
-#    for index in transit_arr:
-#        curr_img, curr_hdr = loadfits(folder[index])
-#        time_arr.append(curr_hdr['JD'] *24*3600 - start_time)
-#        curr_flux = get_band_flux(curr_img, order_num)
-#        curr_x = np.arange(len(curr_flux))
-#        
-#        fit = LLS.linleastsquares([curr_x, curr_flux],3)
-#        flattened_curr = curr_flux - calibrate_quad(fit, curr_x)
-#        flattened_curr /= np.max(flattened_curr)
-#        
-#        #calculate the cross correlation (y-axis)
-#        cross_corr = get_crossed(flattened_ref, flattened_curr)
-#        #calculate shift axis (x-axis)
-#        shift_axis = get_shift_axis(cross_corr)
-#        pixelshift = get_shift(shift_axis, cross_corr)[0]
-#        shift_arr.append(pixelshift)
-#        
-#    print shift_arr
-#
-#    shift_fig = plt.figure()
-#    plt.plot(shift_arr, 'o')
-#    plt.ylabel('Pixel shift')
-#    
-#    fit_fig = plt.figure()
-#    yint, m = LLS.linleastsquares([time_arr, shift_arr],2)
-#    print 'SLOPE', m
-#    shift_fit = time_arr*m + yint
-#    plt.plot(time_arr, shift_arr, 'o')
-#    plt.plot(time_arr, shift_fit,'r', label = 'y = ' + str(m[0]) + 'x + ' + str(yint[0]))
-#    plt.title('Doppler Shift ',size=20)
-#    plt.xlabel('Time', size=18)
-#    plt.ylabel('Pixel Shift', size=18)
-#    plt.legend(loc=8)
-#    
-#    residuals_fig = plt.figure()
-#    res = shift_fit - shift_arr
-#    plt.plot(shift_arr,res,'go')
-#    return shift_arr, shift_fig, fit_fig, residuals_fig
-## 44th spectrum is the t_0, so go from transit_arr[0] to transit_arr[-1]
-#shift_arr, shift_fig, fit_fig, residuals_fig = shift(sun_files_1_11_11, '1_11_11')
-#plt.show(shift_fig)
+print KM_11_11
+print KM_11_12 
+print KM_11_16 
 
 
 
@@ -1232,54 +1186,7 @@ plt.show(fit_fig)
 
 
 
-
-
-
-
-
-
-
-
-#
-#def shift(t_0_index, transit_arr, wavelength, folder):
-#    #=========================
-#    # get the shifted array
-#    t_0_flux = get_flux_for_cross_corr(folder, t_0_index)
-#    #for index in range(len(folder)):
-#    #    t_0_flux += get_flux_for_cross_corr(folder, index)
-#    #t_0_flux /= len(folder)
-#    shift_arr = []
-#    print transit_arr
-#    for index in transit_arr:
-#        curr_flux = get_flux_for_cross_corr(folder, index)
-#        cross_corr = get_crossed(curr_flux, t_0_flux)
-#        shift_axis = get_shift_axis(cross_corr)
-#        x_shift = get_shift(shift_axis, cross_corr)[0]
-#        shift_arr.append(x_shift)
-#    print shift_arr
-#    shift_fig = plt.figure()
-#    plt.plot(shift_arr, 'o')
-#    plt.ylabel('Pixel shift')
-#    
-#    fit_fig = plt.figure()
-#    x = np.arange(len(shift_arr))
-#    yint, m = LLS.linleastsquares([x, shift_arr],2)
-#    print 'SLOPE', m
-#    shift_fit = x*m + yint
-#    plt.plot(x, shift_arr, 'o')
-#    plt.plot(x, shift_fit,'r', label = 'y = ' + str(m[0]) + 'x + ' + str(yint[0]))
-#    plt.title('Doppler Shift ',size=20)
-#    plt.xlabel('Time', size=18)
-#    plt.ylabel('Pixel Shift', size=18)
-#    plt.legend(loc=8)
-#    
-#    residuals_fig = plt.figure()
-#    res = shift_fit - shift_arr
-#    plt.plot(x,res,'go')
-#    return shift_arr, shift_fig, fit_fig, residuals_fig
-## 44th spectrum is the t_0, so go from transit_arr[0] to transit_arr[-1]
-#shift_arr, shift_fig, fit_fig, residuals_fig = shift(chosen_t_0, chosen_transit_arr, wavelength, chosen_folder)
-#plt.show(shift_fig)
+'''
 
 shift = np.max(shift_arr)
 print 'SHIFT', shift
@@ -1338,6 +1245,7 @@ decsun = -17 + 37/60. +13.5/3600.
 decsun = np.radians(decsun)
 chord =133.
 predtim = 1919.3/(15*np.cos(decsun))
+'''
 '''
 
 delt = 136.4

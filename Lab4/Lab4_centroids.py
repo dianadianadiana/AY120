@@ -6,6 +6,7 @@ def max_peaks(arr, width, lower_limit):
     return [i for i in range(1, len(arr)-1) if all(arr[i] > arr[i-width:i]) and all(arr[i]>arr[i+1:i+width]) and arr[i]>lower_limit] # 36 is arbitrary
     #assuming that there is nothing before 36
 
+
 def find_peaks(img):
 
     avg = np.median(img)
@@ -102,7 +103,7 @@ def find_peaks(img):
         peaks.append([cluster[max_index], len(cluster)])
     return peaks
 
-def centroid(img):
+def centroid_2D(img):
     """ 
     Purpose:
         To find the centroids of each peak, given the coordinates of each peak and 
@@ -124,7 +125,9 @@ def centroid(img):
     """
     centroids =[]
     peaks = find_peaks(img) # find the peaks, elem of peaks is [[x,y],size]
+
     for pair, size in peaks:
+        print pair
         x_lower = 0 if pair[0]-size <= 0 else pair[0]-size
         x_upper = 1023 if pair[0]+size >=1024 else pair[0]+size
         y_lower = 0 if pair[1]-size <= 0 else pair[1]-size
@@ -161,3 +164,21 @@ def centroid(img):
     centroids_x, centroids_y = centroids[0], centroids[1]
     return centroids_x, centroids_y  # centroids_x ~ cols, centroids_y ~ rows, so when plotting in plt, 
     # need to plot plt.plot(centroids_y, centroids_x) - i think i just switched them along the way
+#=======================================
+#=======================================
+def centroid_1D(index_arr, x_arr, y_arr, peak_width):
+    n = peak_width/2
+    centroids= []
+    for peak_index in index_arr:
+	x_range = x_arr[peak_index-n:peak_index+n]
+	y_range = y_arr[peak_index-n:peak_index+n]
+	centroid = np.sum(x_range*y_range)/np.sum(y_range) #<x>
+	numerator = []
+	for i in x_range:
+	    numerator.append(y_arr[i]*(x_arr[i]-centroid)**2)
+	error = np.sum(numerator) / (np.sum(y_range))**2 
+	centroids.append([centroid, error])
+	#centroids.append(centroid)
+    centroids, centroid_errors = np.transpose(centroids)[0], np.transpose(centroids)[1]
+    return centroids, centroid_errors
+    
